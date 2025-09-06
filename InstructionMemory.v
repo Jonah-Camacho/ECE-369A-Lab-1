@@ -52,10 +52,13 @@ module InstructionMemory(Address, Instruction);
         end
     end
     
-    assign Instruction = memory[Address[8:2]];
+    always @(*) begin
+        Instruction = memory[Address[8:2]];
+    end
     
     //each entry will be its index * 3 (memory[i] = i * 3)
     //read memory[Address] ignoring last two bits
     /* Please fill in the implementation here */
 
 endmodule
+
