@@ -38,22 +38,33 @@
 // which generates a continuous clock pulse into the module.
 ////////////////////////////////////////////////////////////////////////////////
 
-module InstructionFetchUnit(Instruction, PCResult, Reset, Clk);
-    input [31:0] PCResult;
-    input wire Reset, Clk;
-    output wire [31:0] Instruction;
-    
-    wire ClkOut;
-    ClkDiv Clock(.Clk(Clk), .Rst(Reset), .ClkOut(ClkOut));
-    
-    wire [31:0] PCAddResult; //Is the same as Address
-    PCAdder PCA(.PCResult(PCResult), .PCAddResult(PCAddResult));
-    
-    ProgramCounter PC(.Address(PCAddresult), .PCResult(PCAddResult), .Reset(Reset), .Clk(ClkOut));
-    
-    InstructionMemory IM(.Address(PCAddResult), .Instruction(Instruction));
-    
-    /* Please fill in the implementation here... */
-endmodule
+module InstructionFetchUnit(
+    output [31:0] Instruction, 
+    output [31:0] PCResult, 
+    input Reset, 
+    input Clk
+);
 
+    wire [31:0] PCAddResult, Address; //Wire to hold value
+
+    // Instantiate Program Counter
+    ProgramCounter A(
+        .Address(PCAddResult), // Address input for PC is the next address
+        .Reset(Reset), 
+        .Clk(Clk), 
+        .PCResult(PCResult) // PCResult is the current PC value
+    );
+
+    // Instantiate PC Adder
+    PCAdder B(
+        .PCResult(PCResult), 
+        .PCAddResult(PCAddResult)
+    );
+
+    // Instantiate Instruction Memory
+    InstructionMemory C(
+        .Address(PCResult), 
+        .Instruction(Instruction)
+    );
+endmodule
 

@@ -19,14 +19,11 @@
 // 4 (i.e., PCAddResult = PCResult + 4).
 ////////////////////////////////////////////////////////////////////////////////
 
-module PCAdder(PCResult, PCAddResult);
+module PCAdder(input [31:0] PCResult,
+    output [31:0] PCAddResult
+);
 
-    input [31:0] PCResult;
-
-    output [31:0] PCAddResult;
-    
-    assign PCAddResult = PCResult + 4;
-    /* Please fill in the implementation here... */
+    assign PCAddResult = PCResult + 4; //Adds 4
 
 endmodule
 
