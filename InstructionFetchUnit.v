@@ -40,20 +40,20 @@
 
 module InstructionFetchUnit(Instruction, PCResult, Reset, Clk);
     input [31:0] PCResult;
-    input Reset, Clk;
-    output reg [31:0] Instruction;
+    input wire Reset, Clk;
+    output wire [31:0] Instruction;
     
     wire ClkOut;
-    ClkDiv Clock(CLK100MHz, Reset, ClkOut);
+    ClkDiv Clock(.Clk(Clk), .Rst(Reset), .ClkOut(ClkOut));
     
     wire [31:0] PCAddResult; //Is the same as Address
-    PCAdder PCA(PCResult, PCAddResult);
+    PCAdder PCA(.PCResult(PCResult), .PCAddResult(PCAddResult));
     
-    ProgramCounter PC(PCAddresult, PCAddResult, Reset, ClkOut);
+    ProgramCounter PC(.Address(PCAddresult), .PCResult(PCAddResult), .Reset(Reset), .Clk(ClkOut));
     
-    wire [31:0] Instruction;
-    InstructionMemory(PCAddResult, Instruction);
+    InstructionMemory IM(.Address(PCAddResult), .Instruction(Instruction));
     
     /* Please fill in the implementation here... */
 endmodule
+
 
