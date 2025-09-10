@@ -36,26 +36,25 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-module InstructionMemory(Address, Instruction);
-    input [31:0] Address;
-    output reg [31:0] Instruction;
+module InstructionMemory(Address, Instruction); 
 
-       
-    reg [31:0] memory [0:127]; //Array that is 32 spots that are each 127 bits wide
+    input [31:0] Address;        // Input Address 
 
-// Initialize memory values using generate construct
-    integer i; //Variable for iteration
+    output reg [31:0] Instruction;    // Instruction at memory location Address
     
-    initial begin //creates instanaces of hardware componenets
-        for (i = 0; i < 128; i = i + 1) //loop to iterate from 0-32
-              memory[i] = i * 3; // implement equation
+    /* Please fill in the implementation here */
+    reg [31:0] memory [0:127]; // 32 spots, each 127 bits wide
+    integer i;
+    
+    initial begin
+        
+        for (i = 0; i < 128; i = i + 1)
+            memory[i] = i * 3;
+    end
+        
+    always @(Address) begin
+        Instruction = memory[Address[8:2]];
         end
-    
+        
 
-
-    always @(Address) begin //runs for each Address change
-       
-         Instruction = memory[Address[8:2]]; //uses Address as index for this memory array
-         
-         end
 endmodule
