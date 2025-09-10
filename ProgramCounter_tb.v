@@ -1,12 +1,5 @@
 `timescale 1ns / 1ps
 
-////////////////////////////////////////////////////////////////////////////////
-// ECE369A - Computer Architecture
-// Laboratory 1
-// Module - ProgramCounter_tb.v
-// Description - Test the 'ProgramCounter.v' module.
-////////////////////////////////////////////////////////////////////////////////
-
 module ProgramCounter_tb(); 
 
 	reg [31:0] Address;
@@ -14,12 +7,7 @@ module ProgramCounter_tb();
 
 	wire [31:0] PCResult;
 
-    ProgramCounter u0(
-        .Address(Address), 
-        .PCResult(PCResult), 
-        .Reset(Reset), 
-        .Clk(Clk)
-    );
+    ProgramCounter u0(.Address(Address), .PCResult(PCResult), .Reset(Reset), .Clk(Clk));
 
 	initial begin
 		Clk <= 1'b0;
@@ -46,9 +34,6 @@ module ProgramCounter_tb();
     #10
     Reset = 0;
     
-    
     end
-	
-
 endmodule
 
