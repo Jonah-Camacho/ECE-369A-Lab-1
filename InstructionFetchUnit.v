@@ -2,7 +2,9 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // Team Members:
-// Overall percent effort of each team meber: 
+// Jonah Camacho 34%
+// Alex Melde 33%
+// Daniel Castelo 33%
 // 
 // ECE369A - Computer Architecture
 // Laboratory 3 (PostLab)
@@ -38,33 +40,20 @@
 // which generates a continuous clock pulse into the module.
 ////////////////////////////////////////////////////////////////////////////////
 
-module InstructionFetchUnit(
-    output [31:0] Instruction, 
-    output [31:0] PCResult, 
-    input Reset, 
-    input Clk
-);
+module InstructionFetchUnit(Instruction, PCResult, Reset, Clk);
 
-    wire [31:0] PCAddResult, Address; //Wire to hold value
-
-    // Instantiate Program Counter
-    ProgramCounter A(
-        .Address(PCAddResult), // Address input for PC is the next address
-        .Reset(Reset), 
-        .Clk(Clk), 
-        .PCResult(PCResult) // PCResult is the current PC value
-    );
-
-    // Instantiate PC Adder
-    PCAdder B(
-        .PCResult(PCResult), 
-        .PCAddResult(PCAddResult)
-    );
-
-    // Instantiate Instruction Memory
-    InstructionMemory C(
-        .Address(PCResult), 
-        .Instruction(Instruction)
-    );
+    /* Please fill in the implementation here... */
+    output [31:0] Instruction;
+    output [31:0] PCResult;
+    input Reset;
+    input Clk;
+    
+    wire [31:0] PCAddResult, Address;
+    
+    ProgramCounter pc(.Address(PCAddResult),.Reset(Reset),.Clk(Clk),.PCResult(PCResult));
+    
+    PCAdder pca(.PCResult(PCResult),.PCAddResult(PCAddResult));
+    
+    InstructionMemory im(.Address(PCResult),.Instruction(Instruction));
+    
 endmodule
-
