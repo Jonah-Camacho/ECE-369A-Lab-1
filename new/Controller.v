@@ -33,22 +33,25 @@ module Controller(
     output reg MemWrite,
     output reg MemRead,
     output reg MemToReg,
-    output reg [1:0] ALUop,
+    output reg [3:0] ALUop,
     output reg [1:0] MemSize
 );
 
     wire [5:0] opcode = Instruction[31:26];
     
-    localparam [5:0] OP_RTYPE = 6'b000000;
-    localparam [5:0] OP_MUL = 6'b011100;
-    
-    localparam [5:0] OP_ALUI = 6'b001???;
-    localparam [5:0] OP_LOAD = 6'b100???;
-    localparam [5:0] OP_STORE = 6'b101???;
-    
-    localparam [5:0] OP_BRANCH = 6'b0001??;
-    localparam [5:0] OP_JUMP = 6'b000010;
-    localparam [5:0] OP_JAL = 6'b000011;
+    localparam [3:0]
+      ALU_ADD       = 4'b0000,
+      ALU_SUB       = 4'b0001,
+      ALU_AND       = 4'b0010,
+      ALU_OR        = 4'b0011,
+      ALU_XOR       = 4'b0100,
+      ALU_NOR       = 4'b0101,
+      ALU_SLT       = 4'b0110,
+      ALU_SLL       = 4'b0111,
+      ALU_SRL       = 4'b1000,
+      ALU_MUL       = 4'b1001,
+      ALU_USE_FUNCT = 4'b1110, // R-type ? decode funct
+      ALU_NOP       = 4'b1111;
     
     wire [5:0] funct = Instruction[5:0];
     
@@ -65,13 +68,15 @@ module Controller(
         MemWrite = 0;
         MemRead  = 0;
         MemToReg = 0;
+        JumpReg = 0;
+        ALUop = ALU_ADD;
         
        //May need extra control signals for Jump, beq, lh, lb, etc. in future
        casez(opcode)
-            OP_RTYPE: begin
+            6'b000000: begin
                 RegWrite = 1;
                 RegDst   = 1;
-                ALUop    = 2'b10;
+                ALUop    = ALU_USE_FUNCT;
                 
                 if (funct == 6'b001000) begin // jr
                     RegWrite = 0;
@@ -79,22 +84,32 @@ module Controller(
                 end
             end
             
-            OP_MUL: begin
+            //Mul
+            6'b011100: begin
                 RegWrite = 1;
                 RegDst = 1;
-                ALUop = 2'b10;
+                ALUop = ALU_MUL;
             end
             
-            OP_ALUI: begin
+            //ALUI (001???)
+            6'b001???: begin
                 RegWrite = 1;
                 RegDst = 0;
                 ALUSrc = 1;
-                ALUop = 2'b11;
+                case (opcode)
+                  6'b001000: ALUop = ALU_ADD; // addi
+                  6'b001100: begin ALUop = ALU_AND; ExtOp = 0; end // andi
+                  6'b001101: begin ALUop = ALU_OR;  ExtOp = 0; end // ori
+                  6'b001110: begin ALUop = ALU_XOR; ExtOp = 0; end // xori
+                  6'b001010: ALUop = ALU_SLT;       // slti
+                  default:   ALUop = ALU_ADD;
+                endcase
                 if (opcode == 6'b001100 || opcode == 6'b001101 || opcode == 6'b001110)
                     ExtOp = 0; //andi, ori, xori (0 ext)
             end
             
-            OP_LOAD: begin
+            //Loads (100???)
+            6'b100???: begin
                 RegWrite = 1;
                 RegDst = 0;
                 ALUSrc = 1;
@@ -108,7 +123,8 @@ module Controller(
                 endcase
             end
             
-            OP_STORE: begin
+            //Stores (101???)
+            6'b101???: begin
                 ALUSrc = 1;
                 MemWrite = 1;
                 
@@ -119,16 +135,19 @@ module Controller(
                 endcase
             end
             
-            OP_BRANCH: begin
+            //Branches (0001??)
+            6'b0001??: begin
                 Branch = 1;
-                ALUop = 2'b01;
+                ALUop = ALU_SUB;
             end
             
-            OP_JUMP: begin
+            //Jump
+            6'b000010: begin
                 Jump = 1;
             end
             
-            OP_JAL: begin
+            //JAL
+            6'b000011: begin
                 Jump = 1;
                 Link = 1;
                 RegWrite = 1;
