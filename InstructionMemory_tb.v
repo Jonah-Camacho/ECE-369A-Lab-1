@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 10/30/2025 06:26:13 PM
+// Create Date: 10/31/2025 06:56:32 PM
 // Design Name: 
-// Module Name: InstructionMemory
+// Module Name: InstructionMemory_tb
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -20,17 +20,21 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module InstructionMemory(
-    input [31:0] Address,
-    output [31:0] Instruction
+module InstructionMemory_tb;
+
+    reg [31:0] PC;
+    wire [31:0] Instruction;
+    
+    InstructionMemory IM (
+        .Address(PC),
+        .Instruction(Instruction)
     );
-    reg [31:0] memory [0:1023];
     
     initial begin
-        //replace instructions.mem with filename
-        $readmemh("instructions.mem", memory);
+        PC = 0;
+        #10 PC = 4;
+        #10 PC = 8;
+        #10 PC = 8;
+        #10 PC = 12;
     end
-    
-    assign Instruction = memory[Address];
-    
 endmodule
