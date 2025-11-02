@@ -23,7 +23,7 @@
 module ALU(
     input [31:0] input1,
     input [31:0] input2,
-   // input [4:0] shamt, // used in SLL/SLR, worry about later.
+    input [4:0] shamt, // used in SLL/SLR, worry about later.
     input [3:0] op,
     output reg [31:0] result,
     output reg Zero 
@@ -49,7 +49,7 @@ module ALU(
             end
             
             ALU_SUB: begin
-                result = input1 + input2;
+                result = input1 - input2;
             end
             
             ALU_AND: begin
@@ -78,6 +78,14 @@ module ALU(
             
             ALU_NOP:begin
                 result = 32'b0;
+            end
+            
+            ALU_SLL: begin
+                result = input2 << shamt;
+            end
+            
+            ALU_SRL: begin
+                result = input2 >> shamt;
             end
             
             default: result = 32'b0;
