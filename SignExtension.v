@@ -1,21 +1,33 @@
 `timescale 1ns / 1ps
-
-// Used for these Instructions:
-
-// addi:                                           signed add
-// slti:                                           signed compare
-// lw / sw:                                        signed offset
-// lb / lh / sb / sh:                              signed offset
-// beq / bne / bgez / bgtz / blez / btlz:          signed branch displacement
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 11/03/2025 01:24:06 PM
+// Design Name: 
+// Module Name: SignExtension
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
 
 
 module SignExtension (
-  input [15:0] in, // the 16 bit input
-  output [31:0] out // the 32 bit output
+  input [15:0] in,        // 16-bit immediate input
+  input ExtendOp,         // 1 = sign extend, 0 = zero extend
+  output [31:0] out       // 32-bit extended output
 );
 
-// Replicates the Most Significant Bit (bit 15) to fill the high 16 bits.
-// Concatonates those 16 bits with the original 16 bit input
-assign out = {{16{in[15]}}, in}; 
+  // Conditional extension based on ExtendOp control signal
+  assign out = ExtendOp ? {{16{in[15]}}, in}    // Sign extend: replicate MSB
+                        : {16'b0, in};           // Zero extend: pad with zeros
 
 endmodule
