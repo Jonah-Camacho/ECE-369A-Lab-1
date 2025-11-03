@@ -33,7 +33,7 @@ module Mux_2x1(
         case (control)
             1'b0: out  = a;
             1'b1: out = b;
-            default: output = 32'b0;
+            default: out = 32'b0;
         endcase
     end
     
