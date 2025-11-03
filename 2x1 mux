@@ -1,0 +1,20 @@
+
+module mux2x1 (
+    input  wire [31:0] a,   // Input 0
+    input  wire [31:0] b,   // Input 1
+    input  wire control, // Control signal //one bit cause it 1 or 0
+    output reg  [31:0] output    // Output must be reg since assigned in always block
+);
+
+
+    // we have the different bit 0 and 1 bit being where we going to chose and if there isn't an option then it will hit the default case
+
+    always @(*) begin
+        case (control)
+            1'b0: output  = a;
+            1'b1: output = b;
+            default: output = 32'b0;
+        endcase
+    end
+
+endmodule

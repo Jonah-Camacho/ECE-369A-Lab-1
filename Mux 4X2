@@ -1,0 +1,23 @@
+
+module mux3x1 (
+    input  wire [31:0] a,  // Input 0
+    input  wire [31:0] b,  // Input 1
+    input  wire  [31:0] c, //Input 2
+    input  wire [31:0] d,    //Input 4
+    input  wire  [1:0] control, // Control signal 
+    output reg  [31:0] output   // Output must be reg since assigned in always block
+);
+
+
+    // we have 2 bits now so we can decide which one it will wend up being if 0 1 2 in this 3X1 mux
+    always @(*) begin
+        case (control)
+            2'b00: output = a;
+            2'b01: output = b;
+            2'b10: output = c;
+            2'b11: output = d;
+            default: y = 32'b0;
+        endcase
+    end
+
+endmodule
