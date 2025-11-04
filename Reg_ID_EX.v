@@ -24,20 +24,19 @@ module Reg_ID_EX(
     input clk, reset,
     input RegWrite_in, MemWrite_in, MemRead_in, Branch_in, MemToReg_in,
     input ALUSrc_in, RegDst_in,
-    input [31:0] JumpAddr_in,
-    input [1:0] MemSize_in,
     input [3:0] ALUop_in,
-    input [31:0] ReadData1_in, ReadData2_in, ExtImm_in, PCp4_in,
+    input [31:0] ReadData1_in, ReadData2_in, ExtImm_in, PCp4_in, JumpAddr_in,
+    input [1:0] MemSize_in,
     input [4:0] rs_in, rt_in, rd_in,
     input [4:0] shamt_in,
+    input [5:0] funct_in,
     output reg RegWrite_out, MemWrite_out, MemRead_out, Branch_out, MemToReg_out,
     output reg ALUSrc_out, RegDst_out,
-    output reg [31:0] JumpAddr_out;
-    output reg [1:0] MemSize_out;
     output reg [3:0] ALUop_out,
-    output reg [31:0] ReadData1_out, ReadData2_out, ExtImm_out, PCp4_out,
-    output reg [4:0] rs_out, rt_out, rd_out,
-    output reg [4:0] shamt_out // used in ALU if a shift is decoded in ALUController
+    output reg [31:0] ReadData1_out, ReadData2_out, ExtImm_out, PCp4_out, JumpAddr_out,
+    output reg [1:0] MemSize_out,
+    output reg [4:0] rs_out, rt_out, rd_out, shamt_out,
+    output reg [5:0] funct_out
     );
     
     always @(posedge clk or posedge reset) begin
@@ -50,16 +49,17 @@ module Reg_ID_EX(
             ALUSrc_out   <= 0;
             RegDst_out   <= 0;
             ALUop_out    <= 4'b0000;
+            funct_out <= 6'b000000;
             ReadData1_out <= 0;
             ReadData2_out <= 0;
             ExtImm_out <= 0;
             PCp4_out <= 0;
-            rs_out <= 0;
-            rt_out <= 0;
+            rs_out <= 5'b00000;
+            rt_out <= 5'b00000;
             rd_out <= 0;
             shamt_out <= 5'b0;
-            JumpAddr_out <=0;
-            MemSize_out <=0;
+            JumpAddr_out <= 0;
+            MemSize_out <= 0;
          end
          else begin
             RegWrite_out <= RegWrite_in;
@@ -77,6 +77,7 @@ module Reg_ID_EX(
             rs_out <= rs_in;
             rt_out <= rt_in; //rt gets saved no matter what, even if not used (e.g. I-type)
             rd_out <= rd_in;
+            funct_out <= funct_in;
             shamt_out <= shamt_in;
             JumpAddr_out <= JumpAddr_in;
             MemSize_out <= MemSize_in;
