@@ -28,8 +28,6 @@ module ProgramCounter(Address, PCResult, Reset, Clk);
 
 	input [31:0] Address;
 	input Reset, Clk;
-	reg [1:0] state, nextstate;
-	parameter s0 = 0, s1 = 1;
 	output reg [31:0] PCResult;
 	
 
