@@ -95,9 +95,37 @@ module TopLevel(
         .MemSize(MemSize_ID)
     );
     
+    //Write Back
+
     wire RegWrite_WB;
-    wire [4:0] WriteReg_WB;
+    wire mem_wb_MemOrReg; //picks if the alu or memory data(control)
+    wire [4:0] WriteReg_WB; //reg number 
+    wire [31:0] mem_wb_alu_output;
+    wire [31:0] mem_wb_read_data;
     wire [31:0] WriteData_WB;
+
+
+    wire [31:0] WriteBack_Data; //the data
+    wire [4:0] WriteReg_Wb; //write adress 
+    wire RegWrite_Wb; //write data
+
+
+  Mux_2x1 WriteBack_mux(
+
+        .a(mem_wb_alu_output),
+        .b(mem_wb_read_data),
+        .control(mem_wb_MemOrReg),
+        .out(WriteBack_Data)
+
+
+    );
+
+    assign RegWrite_WB = mem_wb_regwrite && (mem_wb_rd != 5'd0);
+    assign WriteReg_WB = mem_wb_rd;
+
+
+
+  
     
     wire [4:0] rs_ID = Instr_ID[25:21];
     wire [4:0] rt_ID = Instr_ID[20:16];
