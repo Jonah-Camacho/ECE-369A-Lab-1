@@ -32,30 +32,20 @@ module ProgramCounter(Address, PCResult, Reset, Clk);
 	parameter s0 = 0, s1 = 1;
 	output reg [31:0] PCResult;
 	
-	initial begin
-	    PCResult = 32'hXXXXXXXX;
-	end
-	
-    
-always @(posedge Clk) begin
-    if (Reset == 1) 
-        state <= 0;
-    else 
-        state <= nextstate;
-    end
-always @(state, Address) begin
-    case(state)
-        s0:
-            begin
-            PCResult <= 32'h00000000;
-            end
-        s1:
-            begin
-            PCResult <= Address;
-            end
-endcase
 
-end
+    // Initialize to 0 for simulation
+    initial begin
+        PCResult = 32'b0;
+    end
+
+    // On reset, set PC to 0; otherwise, update on rising edge
+    always @(posedge Clk or posedge Reset) begin
+	        if (Reset)
+	            PCResult <= 32'b0;       // start at address 0
+	        else
+	            PCResult <= Address;     // load next PC
+	    	end
+	end
     /* Please fill in the implementation here... */
 
 endmodule
