@@ -103,23 +103,10 @@ module TopLevel(
     wire [4:0] WriteReg_WB;
     wire [31:0] WriteData_WB;
     wire [31:0] ReadData1_ID, ReadData2_ID;
-    
-    wire [4:0] rs_ID = Instr_ID[25:21];
-    wire [4:0] rt_ID = Instr_ID[20:16];
-    wire [4:0] rd_ID = Instr_ID[15:11];
+
     wire [4:0] shamt_ID = Instr_ID[10:6];
     
-    RegisterFile rf(
-        .Clk(Clk),
-        .Reset(Reset),
-        .RegWrite(RegWrite_WB),
-        .ReadRegister1(rs_ID),
-        .ReadRegister2(rt_ID),
-        .WriteRegister(WriteReg_WB),
-        .WriteData(WriteData_WB),
-        .ReadData1(ReadData1_ID),
-        .ReadData2(ReadData2_ID)
-    );
+  
     
     
     //Sign/zero extending immediate based on control signal
@@ -175,6 +162,59 @@ module TopLevel(
         .rd_out(rd_EX),
         .shamt_out(shamt_EX)
     );
+
+
+
+
+
+    //Write Back
+
+    wire RegWrite_WB;
+    wire MemToReg_WB; //picks if the alu or memory data(control)
+    wire [4:0] WriteReg_WB; //reg number 
+    wire [31:0] ALUres_WB;
+    wire [31:0] MemReadData_WB;
+    wire [31:0] WriteData_WB;
+
+
+    wire [31:0] WriteBack_Data; //the data
+    wire [4:0] WriteReg_Wb; //write adress 
+    wire RegWrite_Wb; //write data
+
+
+  Mux_2x1 WriteBack_mux(
+
+        .a(ALUres_WB),
+        .b(MemReadData_WB),
+        .control(MemToReg_WB),
+        .out(WriteBack_Data)
+
+
+    );
+
+    assign RegWrite_WB = mem_wb_regwrite && (rd_WB != 5'd0);
+    assign WriteReg_WB = rd_WB;
     
+
+
+
+
+    wire [4:0] rs_ID = Instr_ID[25:21];
+    wire [4:0] rt_ID = Instr_ID[20:16];
+    wire [4:0] rd_ID = Instr_ID[15:11];
     
+
+
+
+      RegisterFile rf(
+        .Clk(Clk),
+        .Reset(Reset),
+        .RegWrite(RegWrite_WB),
+        .ReadRegister1(rs_ID),
+        .ReadRegister2(rt_ID),
+        .WriteRegister(WriteReg_WB),
+        .WriteData(WriteData_WB),
+        .ReadData1(ReadData1_ID),
+        .ReadData2(ReadData2_ID)
+    );
 endmodule
