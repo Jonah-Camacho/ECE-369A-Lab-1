@@ -226,6 +226,40 @@ module TopLevel(
         .result(ALUres_EX),
         .Zero(Zero_EX)
     );
+
+//EX/MEM Register
+    wire MemWrite_MEM, MemRead_MEM, Branch_MEM,
+    RegWrite_MEM, MemToReg_MEM, Zero_MEM;
+    wire [1:0] MemSize_MEM;
+    wire [31:0] ALUres_MEM, WriteData_MEM, BranchTarget_MEM;
+    wire [4:0] WriteReg_MEM;
+    Reg_EX_MEM ex_mem(
+        .clk(Clk),
+        .reset(Reset),
+        .MemWrite_in(MemWrite_EX),
+        .MemRead_in(MemRead_EX),
+        .Branch_in(Branch_EX),
+        .MemSize_in(MemSize_EX),
+        .RegWrite_in(RegWrite_EX),
+        .MemToReg_in(MemToReg_EX),
+        .ALUResult_in(ALUres_EX),
+        .WriteData_in(ReadData2_EX), //write ReadData2_EX to memory
+        .BranchTarget_in(BranchAddr_EX),
+        .Zero_in(Zero_EX),
+        .WriteReg_in(DestReg_EX),
+        .MemWrite_out(MemWrite_MEM),
+        .MemRead_out(MemRead_MEM),
+        .Branch_out(Branch_MEM),
+        .MemSize_out(MemSize_MEM),
+        .RegWrite_out(RegWrite_MEM),
+        .MemToReg_out(MemToReg_MEM),
+        .ALUResult_out(ALUres_MEM),
+        .WriteData_out(WriteData_MEM),
+        .BranchTarget_out(BranchTarget_MEM),
+        .Zero_out(Zero_MEM),
+        .WriteReg_out(WriteReg_MEM)
+
+    );
     
 
 
