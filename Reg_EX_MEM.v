@@ -26,12 +26,14 @@ module Reg_EX_MEM(
     input MemWrite_in, MemRead_in, Branch_in, //used in MEM
     input RegWrite_in, MemToReg_in, //used in WB
     // Data signals/32-bit
+    input [1:0]  MemSize_in,
     input [31:0] ALUResult_in, WriteData_in, BranchTarget_in,
     input Zero_in,
     input [4:0] WriteReg_in,
 
     // Outputs
-    output reg RegWrite_out, MemWrite_out, MemRead_out, Branch_out, MemToReg_out,
+    output reg RegWrite_out, MemWrite_out, MemRead_out, Branch_out, MemToReg_out, MemSize_out,
+    output reg [1:0]  MemSize_out,
     output reg [31:0] ALUResult_out, WriteData_out, BranchTarget_out,
     output reg Zero_out,
     output reg [4:0] WriteReg_out
@@ -44,6 +46,7 @@ module Reg_EX_MEM(
             MemRead_out  <= 0;
             Branch_out   <= 0;
             MemToReg_out <= 0;
+            MemSize_out <= 0;
             ALUResult_out <= 0;
             WriteData_out <= 0;
             BranchTarget_out <= 0;
@@ -56,6 +59,7 @@ module Reg_EX_MEM(
             MemRead_out  <= MemRead_in;
             Branch_out   <= Branch_in;
             MemToReg_out <= MemToReg_in;
+            MemSize_out <= MemSize_in;
             ALUResult_out <= ALUResult_in;
             WriteData_out <= WriteData_in;
             BranchTarget_out <= BranchTarget_in;
