@@ -96,7 +96,7 @@ module TopLevel(
     );
     
     wire RegWrite_WB;
-    wire [4:0] WriteRegister_WB;
+    wire [4:0] WriteReg_WB;
     wire [31:0] WriteData_WB;
     
     wire [4:0] rs_ID = Instr_ID[25:21];
@@ -113,7 +113,7 @@ module TopLevel(
         .WriteData(WriteData_WB),
         .ReadData1(ReadData1_ID),
         .ReadData2(ReadData2_ID)
-    )
+    );
     
     
     
