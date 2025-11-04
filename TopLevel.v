@@ -261,25 +261,4 @@ module TopLevel(
     assign WriteReg_WB = rd_WB;
     
 
-
-
-
-    wire [4:0] rs_ID = Instr_ID[25:21];
-    wire [4:0] rt_ID = Instr_ID[20:16];
-    wire [4:0] rd_ID = Instr_ID[15:11];
-    
-
-
-
-      RegisterFile rf(
-        .Clk(Clk),
-        .Reset(Reset),
-        .RegWrite(RegWrite_WB),
-        .ReadRegister1(rs_ID),
-        .ReadRegister2(rt_ID),
-        .WriteRegister(WriteReg_WB),
-        .WriteData(WriteData_WB),
-        .ReadData1(ReadData1_ID),
-        .ReadData2(ReadData2_ID)
-    );
 endmodule
