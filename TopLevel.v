@@ -29,30 +29,31 @@ module TopLevel(
     
     //IF
     //Address calculation, stored in Addr
-    wire [31:0] AddrIF = 32'h00000000;
+    wire [31:0] PC_curr, PC_next;
+    
     ProgramCounter pc(
-        .Address(AddrIF),
-        .PCResult(PC_RES),
+        .Address(PC_curr),
+        .PCResult(PC_next),
         .Reset(Reset),
         .Clk(Clk)
     );
     
     PCAdder pcadd(
-        .PCResult(PC_RES),
-        .PCAddResult(AddrIF)
+        .PCResult(PC_curr),
+        .PCAddResult(PC_next)
     );
     
     //Instruction from address in instruction memory, stored in InstrIF
     wire [31:0] InstrIF;
     InstructionMemory im(
-        .Address(AddrIF),
+        .Address(PC_curr),
         .Instruction(InstrIF)
     );
     
     //Jump address calculation, stored in JumpAddr
     wire [31:0] JumpAddrIF;
     Shift_left_2 jumpAddrCalc(
-        .value_in(AddrIF),
+        .value_in(PC_curr),
         .value_out(JumpAddrIF)
     );
     
@@ -71,24 +72,29 @@ module TopLevel(
     );
     
     //ID
-    
+    wire RegWriteID, ALUsrcID, ExtOpID, RegDstID, BranchID, JumpID, LinkID,
+    JumpRegID, MemWriteID, MemReadID, MemToRegID;
+    wire [3:0] ALUopID;
+    wire [1:0] MemSizeID;
     
     Controller ctrl(
         .Instruction(InstrID),
-        .RegWrite(),
-        .AluSrc(),
-        .ExtOp(),
-        .RegDst(),
-        .Branch(),
-        .Jump(),
-        .Link(),
-        .JumpReg(),
-        .MemWrite(),
-        .MemRead(),
-        .MemToReg(),
-        .ALUop(),
-        .MemSize()
+        .RegWrite(RegWriteID),
+        .ALUSrc(ALUSrcID),
+        .ExtOp(ExtOpID),
+        .RegDst(RegDstID),
+        .Branch(BranchID),
+        .Jump(JumpID),
+        .Link(LinkID),
+        .JumpReg(JumpRegID),
+        .MemWrite(MemWriteID),
+        .MemRead(MemReadID),
+        .MemToReg(MemToRegID),
+        .ALUop(ALUopID),
+        .MemSize(MemSizeID)
     );
+    
+    //RegisterFile rf
     
     
     
