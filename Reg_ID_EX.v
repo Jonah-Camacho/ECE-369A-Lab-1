@@ -24,12 +24,16 @@ module Reg_ID_EX(
     input clk, reset,
     input RegWrite_in, MemWrite_in, MemRead_in, Branch_in, MemToReg_in,
     input ALUSrc_in, RegDst_in,
+    input [31:0] JumpAddr_in,
+    input [1:0] MemSize_in,
     input [3:0] ALUop_in,
     input [31:0] ReadData1_in, ReadData2_in, ExtImm_in, PCp4_in,
     input [4:0] rs_in, rt_in, rd_in,
     input [4:0] shamt_in,
     output reg RegWrite_out, MemWrite_out, MemRead_out, Branch_out, MemToReg_out,
     output reg ALUSrc_out, RegDst_out,
+    output reg [31:0] JumpAddr_out;
+    output reg [1:0] MemSize_out;
     output reg [3:0] ALUop_out,
     output reg [31:0] ReadData1_out, ReadData2_out, ExtImm_out, PCp4_out,
     output reg [4:0] rs_out, rt_out, rd_out,
@@ -54,6 +58,8 @@ module Reg_ID_EX(
             rt_out <= 0;
             rd_out <= 0;
             shamt_out <= 5'b0;
+            JumpAddr_out <=0;
+            MemSize_out <=0;
          end
          else begin
             RegWrite_out <= RegWrite_in;
@@ -72,6 +78,8 @@ module Reg_ID_EX(
             rt_out <= rt_in; //rt gets saved no matter what, even if not used (e.g. I-type)
             rd_out <= rd_in;
             shamt_out <= shamt_in;
+            JumpAddr_out <= JumpAddr_in;
+            MemSize_out <= MemSize_in;
          end
     end
 endmodule
