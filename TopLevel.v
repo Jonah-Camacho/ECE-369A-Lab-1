@@ -31,70 +31,89 @@ module TopLevel(
     //Address calculation, stored in Addr
     wire [31:0] PC_curr, PC_next;
     
-    ProgramCounter pc(
-        .Address(PC_curr),
-        .PCResult(PC_next),
-        .Reset(Reset),
-        .Clk(Clk)
-    );
     
     PCAdder pcadd(
         .PCResult(PC_curr),
         .PCAddResult(PC_next)
     );
     
+   ProgramCounter pc(
+        .Address(PC_next),
+        .PCResult(PC_curr),
+        .Reset(Reset),
+        .Clk(Clk)
+    );
+    
     //Instruction from address in instruction memory, stored in InstrIF
-    wire [31:0] InstrIF;
+    wire [31:0] Instr_IF;
     InstructionMemory im(
         .Address(PC_curr),
-        .Instruction(InstrIF)
+        .Instruction(Instr_IF)
     );
     
     //Jump address calculation, stored in JumpAddr
-    wire [31:0] JumpAddrIF;
+    wire [31:0] JumpAddr_IF;
     Shift_left_2 jumpAddrCalc(
         .value_in(PC_curr),
-        .value_out(JumpAddrIF)
+        .value_out(JumpAddr_IF)
     );
     
     //IF/ID Register
-    wire [31:0] InstrID, AddrID, JumpAddrID;
-    Reg_IF_ID IFID(
+    wire [31:0] Instr_ID, Addr_ID, JumpAddr_ID;
+    Reg_IF_ID IF_ID(
         .clk(Clk),
         .rst(Reset),
         .en(1), //Can changle later, enabled = 1
-        .instr_in(InstrIF),
-        .pc_in(AddrIF),
-        .jump_addr_in(JumpAddrIF),
-        .instr_out(InstrID),
-        .pc_out(AddrID),
-        .jump_addr_out(JumpAddrID)
+        .instr_in(Instr_IF),
+        .pc_in(Addr_IF),
+        .jump_addr_in(JumpAddr_IF),
+        .instr_out(Instr_ID),
+        .pc_out(Addr_ID),
+        .jump_addr_out(JumpAddr_ID)
     );
     
     //ID
-    wire RegWriteID, ALUsrcID, ExtOpID, RegDstID, BranchID, JumpID, LinkID,
-    JumpRegID, MemWriteID, MemReadID, MemToRegID;
-    wire [3:0] ALUopID;
-    wire [1:0] MemSizeID;
+    wire RegWrite_ID, ALUsrc_ID, ExtOp_ID, RegDst_ID, Branch_ID, Jump_ID, Link_ID,
+    JumpRegID, MemWrite_ID, MemRead_ID, MemToReg_ID;
+    wire [3:0] ALUop_ID;
+    wire [1:0] MemSize_ID;
     
     Controller ctrl(
-        .Instruction(InstrID),
-        .RegWrite(RegWriteID),
-        .ALUSrc(ALUSrcID),
-        .ExtOp(ExtOpID),
-        .RegDst(RegDstID),
-        .Branch(BranchID),
-        .Jump(JumpID),
-        .Link(LinkID),
-        .JumpReg(JumpRegID),
-        .MemWrite(MemWriteID),
-        .MemRead(MemReadID),
-        .MemToReg(MemToRegID),
-        .ALUop(ALUopID),
-        .MemSize(MemSizeID)
+        .Instruction(Instr_ID),
+        .RegWrite(RegWrite_ID),
+        .ALUSrc(ALUSrc_ID),
+        .ExtOp(ExtOp_ID),
+        .RegDst(RegDst_ID),
+        .Branch(Branch_ID),
+        .Jump(Jump_ID),
+        .Link(Link_ID),
+        .JumpReg(JumpReg_ID),
+        .MemWrite(MemWrite_ID),
+        .MemRead(MemRead_ID),
+        .MemToReg(MemToReg_ID),
+        .ALUop(ALUop_ID),
+        .MemSize(MemSize_ID)
     );
     
-    //RegisterFile rf
+    wire RegWrite_WB;
+    wire [4:0] WriteRegister_WB;
+    wire [31:0] WriteData_WB;
+    
+    wire [4:0] rs_ID = Instr_ID[25:21];
+    wire [4:0] rt_ID = Instr_ID[20:16];
+    wire [4:0] rd_ID = Instr_ID[15:11];
+    
+    RegisterFile rf(
+        .Clk(Clk),
+        .Reset(Reset),
+        .RegWrite(RegWrite_WB),
+        .ReadRegister1(rs_ID),
+        .ReadRegister2(rt_ID),
+        .WriteRegister(WriteReg_WB),
+        .WriteData(WriteData_WB),
+        .ReadData1(ReadData1_ID),
+        .ReadData2(ReadData2_ID)
+    )
     
     
     
