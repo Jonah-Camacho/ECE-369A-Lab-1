@@ -1,33 +1,16 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 11/03/2025 01:24:06 PM
-// Design Name: 
-// Module Name: SignExtension
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
+
 
 
 module SignExtension (
-  input [15:0] in,        // 16-bit immediate input
-  input ExtendOp,         // 1 = sign extend, 0 = zero extend
-  output [31:0] out       // 32-bit extended output
+    input  wire [15:0] in,        // 16-bit immediate input
+    input  wire        control,   // 0 = sign extend, 1 = zero extend
+    output wire [31:0] out        // 32-bit extended output
 );
-
-  // Conditional extension based on ExtendOp control signal
-  assign out = ExtendOp ? {{16{in[15]}}, in}    // Sign extend: replicate MSB
-                        : {16'b0, in};           // Zero extend: pad with zeros
+    // Extension logic:
+    // control = 0: Sign extend (replicate MSB) - used for ADDI, SLTI, LW, SW, etc.
+    // control = 1: Zero extend (pad with zeros) - used for ANDI, ORI, XORI
+    assign out = (control == 1'b0) ? {{16{in[15]}}, in}  // Sign extend
+                                    : {16'b0, in};        // Zero extend
 
 endmodule

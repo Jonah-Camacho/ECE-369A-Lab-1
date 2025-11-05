@@ -1,23 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 10/30/2025 06:26:13 PM
-// Design Name: 
-// Module Name: InstructionMemory
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 
 module InstructionMemory(
@@ -31,6 +12,7 @@ module InstructionMemory(
         $readmemh("instructions.mem", memory);
     end
     
-    assign Instruction = memory[Address];
+    
+    assign Instruction = memory[Address[11:2]];
     
 endmodule
