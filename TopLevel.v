@@ -1,8 +1,10 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
-// Engineer: 
-// 
+// % Effort: 
+// Jonah Camacho: 33%
+// Daniel Rivera: 33%
+// Alex Melde: 33%
 // Create Date: 11/03/2025 02:13:28 PM
 // Design Name: 
 // Module Name: TopLevel
