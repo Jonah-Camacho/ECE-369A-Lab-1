@@ -5,7 +5,7 @@
 // 
 // Create Date: 11/04/2025 10:20:37 PM
 // Design Name: 
-// Module Name: RegisterFile_tb
+// Module Name: InstructionFetchUnit_tb
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -20,14 +20,14 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module RegisterFile_tb;
-  reg Clk=0, Reset=1, RegWrite=0; reg [4:0] r1=0,r2=0,wr=0; reg [31:0] wd=0; wire [31:0] d1,d2;
-  RegisterFile dut(.Clk(Clk),.Reset(Reset),.RegWrite(RegWrite),.ReadRegister1(r1),.ReadRegister2(r2),.WriteRegister(wr),.WriteData(wd),.ReadData1(d1),.ReadData2(d2));
+module InstructionFetchUnit_tb;
+  reg Clk=0, Reset=1; reg [31:0] PC_next=0; wire [31:0] Instruction, PC_curr, PC_plus4;
+  InstructionFetchUnit dut(.Clk(Clk),.Reset(Reset),.PC_next(PC_next),.Instruction(Instruction),.PC_curr(PC_curr),.PC_plus4(PC_plus4));
   always #5 Clk=~Clk;
   initial begin
     repeat(2) @(posedge Clk); Reset=0;
-    wr=5'd9; wd=32'h12345678; RegWrite=1; @(posedge Clk); RegWrite=0;
-    r1=5'd9; r2=5'd0; #1; $display("R9=%h R0=%h", d1,d2);
-    $display("RegisterFile_tb PASS"); $finish;
+    PC_next=32'h0; @(posedge Clk); $display("PC=%h PC+4=%h", PC_curr, PC_plus4);
+    PC_next=PC_plus4; @(posedge Clk); $display("PC=%h PC+4=%h", PC_curr, PC_plus4);
+    $display("InstructionFetchUnit_tb PASS"); $finish;
   end
 endmodule

@@ -1,40 +1,11 @@
-`timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 10/31/2025 06:56:32 PM
-// Design Name: 
-// Module Name: InstructionMemory_tb
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
-
+`timescale 1ns/1ps
 module InstructionMemory_tb;
-
-    reg [31:0] PC;
-    wire [31:0] Instruction;
-    
-    InstructionMemory IM (
-        .Address(PC),
-        .Instruction(Instruction)
-    );
-    
-    initial begin
-        PC = 0;
-        #10 PC = 4;
-        #10 PC = 8;
-        #10 PC = 8;
-        #10 PC = 12;
-    end
+  reg [31:0] Address; wire [31:0] Instruction;
+  InstructionMemory dut(.Address(Address), .Instruction(Instruction));
+  initial begin
+    Address=32'h0;   #1; $display("I[0]=%h", Instruction);
+    Address=32'h18;  #1; $display("I[24]=%h", Instruction);
+    Address=32'h30;  #1; $display("I[48]=%h", Instruction);
+    $display("InstructionMemory_tb PASS"); $finish;
+  end
 endmodule

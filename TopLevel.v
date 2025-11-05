@@ -1,26 +1,8 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// % Effort: 
-// Jonah Camacho: 33%
-// Daniel Rivera: 33%
-// Alex Melde: 33%
-// Create Date: 11/03/2025 02:13:28 PM
-// Design Name: 
-// Module Name: TopLevel
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
+///////
+// Participation: 33% Jonah Camacho, 33% Alex Melde, 33% Daniel Rivera Castelo
+//////
 
 module TopLevel(
     input  wire       Clk,
@@ -40,6 +22,8 @@ module TopLevel(
         .ClkOut(ClkSlow)     // 1 Hz output (1 instruction/second)
     );
     
+    // assign ClkSlow = Clk;
+    
     // Use ClkSlow for all datapath components
     // Use Clk (fast) for the display multiplexing
 
@@ -47,33 +31,26 @@ module TopLevel(
     // IF STAGE - Instruction Fetch
     // ========================================================================
     wire [31:0] PC_curr, PC_plus4, PC_next_final;
-
-    ProgramCounter pc(
-        .Address(PC_next_final),
-        .PCResult(PC_curr),
-        .Reset(Reset),
-        .Clk(ClkSlow)        // Use slow clock for visible operation
-    );
-
-    PCAdder pcadd(
-        .PCResult(PC_curr),
-        .PCAddResult(PC_plus4)
-    );
-
     wire [31:0] Instr_IF;
-    InstructionMemory im(
-        .Address(PC_curr),
-        .Instruction(Instr_IF)
+
+    // Create Instruction Fetch Unit
+    InstructionFetchUnit ifu(
+        .Clk(ClkSlow),
+        .Reset(Reset),
+        .PC_next(PC_next_final),     // From branch/jump logic
+        .Instruction(Instr_IF),      // To IF/ID register
+        .PC_curr(PC_curr),           // For display/debug
+        .PC_plus4(PC_plus4)          // To IF/ID register
     );
 
-// Jump address
-wire [27:0] JumpShifted_IF;
-wire [31:0] JumpAddr_IF;                
-Shift_left_2_26 u_jump_shift (
-  .in (Instr_IF[25:0]),
-  .out(JumpShifted_IF)
-);
-assign JumpAddr_IF = {PC_plus4[31:28], JumpShifted_IF};
+    // Jump address calculation (moved here for clarity)
+    wire [27:0] JumpShifted_IF;
+    wire [31:0] JumpAddr_IF;                
+    Shift_left_2_26 u_jump_shift (
+      .in (Instr_IF[25:0]),
+      .out(JumpShifted_IF)
+    );
+    assign JumpAddr_IF = {PC_plus4[31:28], JumpShifted_IF};
 
     // ========================================================================
     // IF/ID PIPELINE REGISTER
@@ -226,7 +203,7 @@ assign JumpAddr_IF = {PC_plus4[31:28], JumpShifted_IF};
     // Destination register: rd for R-type, rt for I-type
     wire [4:0] DestReg_EX = (RegDst_EX) ? rd_EX : rt_EX;
 
-   // Branch address
+    // Branch address
     wire [31:0] ImmShifted_EX;
     wire [31:0] BranchAddr_EX;             
     Shift_left_2_32 u_branch_shift (
@@ -234,7 +211,6 @@ assign JumpAddr_IF = {PC_plus4[31:28], JumpShifted_IF};
       .out(ImmShifted_EX)
     );
     assign BranchAddr_EX = PC_EX + ImmShifted_EX;
-    
     
     // ALU second operand: immediate or register
     wire [31:0] ALU_2nd = (ALUSrc_EX) ? Imm_EX : ReadData2_EX;
@@ -312,15 +288,15 @@ assign JumpAddr_IF = {PC_plus4[31:28], JumpShifted_IF};
     // Data Memory
     wire [31:0] MemReadData_MEM;
     DataMemory data_mem(
-    .Clk(ClkSlow),           // Use slow clock
-    .Address(ALUres_MEM),
-    .WriteData(WriteData_MEM),
-    .MemWrite(MemWrite_MEM),
-    .MemRead(MemRead_MEM),
-    .MemSize(MemSize_MEM),
-    .LoadSigned(LoadSigned_MEM),
-    .ReadData(MemReadData_MEM)
-);
+        .Clk(ClkSlow),           // Use slow clock
+        .Address(ALUres_MEM),
+        .WriteData(WriteData_MEM),
+        .MemWrite(MemWrite_MEM),
+        .MemRead(MemRead_MEM),
+        .MemSize(MemSize_MEM),
+        .LoadSigned(LoadSigned_MEM),
+        .ReadData(MemReadData_MEM)
+    );
 
     // Branch decision: take branch if BEQ and Zero flag set
     wire PCSrc_MEM = Branch_MEM & Zero_MEM;
@@ -330,9 +306,10 @@ assign JumpAddr_IF = {PC_plus4[31:28], JumpShifted_IF};
     // ========================================================================
     wire [31:0] PC_branch_or_seq = PCSrc_MEM ? BranchTarget_MEM : PC_plus4;
     
-    assign PC_next_final = JumpReg_ID ? JRTarget_ID      :  // JR: use rs value (from ID)
-                           Jump_ID    ? JumpAddr_ID      :  // J/JAL: use jump address (from ID)
-                                        PC_branch_or_seq;   // Branch or PC+4
+    // FIXED: Use proper jump detection from ID stage
+    assign PC_next_final = (JumpReg_ID | Jump_ID) ? 
+                          (JumpReg_ID ? JRTarget_ID : JumpAddr_ID) : 
+                          PC_branch_or_seq;
 
     // ========================================================================
     // MEM/WB PIPELINE REGISTER
@@ -376,17 +353,20 @@ assign JumpAddr_IF = {PC_plus4[31:28], JumpShifted_IF};
     assign WriteReg_WB_final  = Link_WB ? 5'd31           : WriteReg_WB_core;
     assign WriteData_WB_final = Link_WB ? PC_WB           : WriteData_WB_core;
 
-     // =========================================================
+    // ========================================================================
     // DISPLAY: show PC (low 16) and RF write data (low 16)
-    // =========================================================
-    wire [15:0] dispA = PC_curr[15:0];
-    wire [15:0] dispB = WriteData_WB_final[15:0];
+    // ========================================================================
+    wire [31:0] pc_wb_instr = PC_WB - 32'd4;  // align with the actual instruction address
 
+    wire [15:0] dispA = pc_wb_instr[15:0];        // lower 16 bits of PC at WB
+    wire [15:0] dispB = WriteData_WB_final[15:0]; // lower 16 bits of WB data
+    
     Two4DigitDisplay disp (
-        .Clk    (Clk),
+        .Clk    (Clk),    // fast clock for multiplexing
         .NumberA(dispA),
         .NumberB(dispB),
         .out7   (out7),
         .en_out (en_out)
     );
+
 endmodule

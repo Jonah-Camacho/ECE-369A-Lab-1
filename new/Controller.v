@@ -1,44 +1,22 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 10/24/2025 07:15:54 PM
-// Design Name: 
-// Module Name: Controller
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
-
-
 module Controller(
-    input  [31:0] Instruction,
-    output reg RegWrite,
-    output reg ALUSrc,
-    output reg ExtOp,
-    output reg RegDst,
-    output reg Branch,
-    output reg Jump,
-    output reg Link,
-    output reg JumpReg,
-    output reg MemWrite,
-    output reg MemRead,
-    output reg MemToReg,
-    output reg [3:0] ALUop,
-    output reg [1:0] MemSize
+    input  wire [31:0] Instruction,
+    output reg  RegWrite,
+    output reg  ALUSrc,
+    output reg  ExtOp,        // 0=sign, 1=zero
+    output reg  RegDst,       // 0=rt, 1=rd
+    output reg  Branch,       // BEQ
+    output reg  Jump,         // J/JAL
+    output reg  Link,         // JAL
+    output reg  JumpReg,      // JR
+    output reg  MemWrite,
+    output reg  MemRead,
+    output reg  MemToReg,     // 0=ALU, 1=Mem
+    output reg  [3:0] ALUop,  // must match ALUcontrol enums
+    output reg  [1:0] MemSize,// 00=byte,01=half,10=word
+    output reg  LoadSigned    // 1=signed (LB/LH), 0=unsigned (LBU/LHU)
 );
-
-    wire [5:0] opcode = Instruction[31:26];
-    
+    // Match ALUcontrol constants
     localparam [3:0]
       ALU_ADD       = 4'b0000,
       ALU_SUB       = 4'b0001,
@@ -50,114 +28,118 @@ module Controller(
       ALU_SLL       = 4'b0111,
       ALU_SRL       = 4'b1000,
       ALU_MUL       = 4'b1001,
-      ALU_USE_FUNCT = 4'b1110, // R-type ? decode funct
+      ALU_USE_FUNCT = 4'b1110,
       ALU_NOP       = 4'b1111;
-    
-    wire [5:0] funct = Instruction[5:0];
-    
-        always @* begin
-        RegWrite = 0;
-        ALUSrc   = 0;
-        ALUop    = 2'b00;
-        RegDst   = 0;
-        Branch   = 0;
-        MemSize = 2'b10;
-        ExtOp = 1;
-        Link = 0;
-        Jump = 0;
-        MemWrite = 0;
-        MemRead  = 0;
-        MemToReg = 0;
-        JumpReg = 0;
-        ALUop = ALU_ADD;
+
+    wire [5:0] opcode = Instruction[31:26];
+    wire [5:0] funct  = Instruction[5:0];
+
+    always @(*) begin
+        // safe defaults
+        RegWrite   = 1'b0;
+        ALUSrc     = 1'b0;
+        ExtOp      = 1'b0;     // sign extend default
+        RegDst     = 1'b0;     // rt default
+        Branch     = 1'b0;
+        Jump       = 1'b0;
+        Link       = 1'b0;
+        JumpReg    = 1'b0;
+        MemWrite   = 1'b0;
+        MemRead    = 1'b0;
+        MemToReg   = 1'b0;
+        ALUop      = ALU_NOP;
+        MemSize    = 2'b10;    // word
+        LoadSigned = 1'b1;     // signed by default
         
-       //May need extra control signals for Jump, beq, lh, lb, etc. in future
-       casez(opcode)
-            6'b000000: begin
-                RegWrite = 1;
-                RegDst   = 1;
-                ALUop    = ALU_USE_FUNCT;
-                
-                if (funct == 6'b001000) begin // jr
-                    RegWrite = 0;
-                    JumpReg  = 1;
+        // Check for NOP first (all zeros)
+        if (Instruction == 32'h00000000) begin
+            // NOP - all defaults remain (do nothing)
+            // RegWrite = 0, ALUop = NOP, etc.
+        end
+        else begin
+
+            case (opcode)
+                6'b000000: begin // R-type
+                    // JR handled as a special R-type
+                    if (funct == 6'b001000) begin // JR
+                        JumpReg  = 1'b1;
+                        ALUop    = ALU_NOP; // ALU unused
+                    end else begin
+                        RegWrite = 1'b1;
+                        RegDst   = 1'b1;    // rd
+                        ALUop    = ALU_USE_FUNCT; // let ALUcontrol use 'funct'
+                    end
                 end
-            end
-            
-            //Mul
-            6'b011100: begin
-                RegWrite = 1;
-                RegDst = 1;
-                ALUop = ALU_MUL;
-            end
-            
-            //ALUI (001???)
-            6'b001???: begin
-                RegWrite = 1;
-                RegDst = 0;
-                ALUSrc = 1;
-                case (opcode)
-                  6'b001000: ALUop = ALU_ADD; // addi
-                  6'b001100: begin ALUop = ALU_AND; ExtOp = 0; end // andi
-                  6'b001101: begin ALUop = ALU_OR;  ExtOp = 0; end // ori
-                  6'b001110: begin ALUop = ALU_XOR; ExtOp = 0; end // xori
-                  6'b001010: ALUop = ALU_SLT;       // slti
-                  default:   ALUop = ALU_ADD;
-                endcase
-                if (opcode == 6'b001100 || opcode == 6'b001101 || opcode == 6'b001110)
-                    ExtOp = 0; //andi, ori, xori (0 ext)
-            end
-            
-            //Loads (100???)
-            6'b100???: begin
-                RegWrite = 1;
-                RegDst = 0;
-                ALUSrc = 1;
-                MemRead = 1;
-                MemToReg = 1;
-                
-                case (opcode[1:0])
-                    2'b00: MemSize = 2'b10; //lw
-                    2'b01: MemSize = 2'b01; //lh
-                    2'b10: MemSize = 2'b00; //lb
-                endcase
-            end
-            
-            //Stores (101???)
-            6'b101???: begin
-                ALUSrc = 1;
-                MemWrite = 1;
-                
-                case (opcode[1:0])
-                    2'b00: MemSize = 2'b10; //sw
-                    2'b01: MemSize = 2'b01; //sh
-                    2'b10: MemSize = 2'b00; //sb
-                endcase
-            end
-            
-            //Branches (0001??)
-            6'b0001??: begin
-                Branch = 1;
-                ALUop = ALU_SUB;
-            end
-            
-            //Jump
-            6'b000010: begin
-                Jump = 1;
-            end
-            
-            //JAL
-            6'b000011: begin
-                Jump = 1;
-                Link = 1;
-                RegWrite = 1;
-            end
-            
-            default: begin 
-                //keep defaults (NOP)
-            end
-        endcase
-    end
-       
+    
+                6'b001000: begin // ADDI
+                    RegWrite = 1'b1; ALUSrc = 1'b1; ExtOp = 1'b0; ALUop = ALU_ADD;
+                end
+                6'b001001: begin // ADDIU
+                    RegWrite = 1'b1; ALUSrc = 1'b1; ExtOp = 1'b0; ALUop = ALU_ADD;
+                end
+                6'b001100: begin // ANDI
+                    RegWrite = 1'b1; ALUSrc = 1'b1; ExtOp = 1'b1; ALUop = ALU_AND;
+                end
+                6'b001101: begin // ORI
+                    RegWrite = 1'b1; ALUSrc = 1'b1; ExtOp = 1'b1; ALUop = ALU_OR;
+                end
+                6'b001110: begin // XORI (if you support it)
+                    RegWrite = 1'b1; ALUSrc = 1'b1; ExtOp = 1'b1; ALUop = ALU_XOR;
+                end
+                6'b001010: begin // SLTI
+                    RegWrite = 1'b1; ALUSrc = 1'b1; ExtOp = 1'b0; ALUop = ALU_SLT;
+                end
+    
+                6'b100011: begin // LW
+                    RegWrite = 1'b1; ALUSrc = 1'b1; MemRead = 1'b1; MemToReg = 1'b1;
+                    ALUop = ALU_ADD; MemSize = 2'b10; LoadSigned = 1'b1;
+                end
+                6'b100000: begin // LB
+                    RegWrite = 1'b1; ALUSrc = 1'b1; MemRead = 1'b1; MemToReg = 1'b1;
+                    ALUop = ALU_ADD; MemSize = 2'b00; LoadSigned = 1'b1;
+                end
+                6'b100100: begin // LBU
+                    RegWrite = 1'b1; ALUSrc = 1'b1; MemRead = 1'b1; MemToReg = 1'b1;
+                    ALUop = ALU_ADD; MemSize = 2'b00; LoadSigned = 1'b0;
+                end
+                6'b100001: begin // LH
+                    RegWrite = 1'b1; ALUSrc = 1'b1; MemRead = 1'b1; MemToReg = 1'b1;
+                    ALUop = ALU_ADD; MemSize = 2'b01; LoadSigned = 1'b1;
+                end
+                6'b100101: begin // LHU
+                    RegWrite = 1'b1; ALUSrc = 1'b1; MemRead = 1'b1; MemToReg = 1'b1;
+                    ALUop = ALU_ADD; MemSize = 2'b01; LoadSigned = 1'b0;
+                end
+    
+                6'b101011: begin // SW
+                    ALUSrc = 1'b1; MemWrite = 1'b1; ALUop = ALU_ADD; MemSize = 2'b10;
+                end
+                6'b101000: begin // SB
+                    ALUSrc = 1'b1; MemWrite = 1'b1; ALUop = ALU_ADD; MemSize = 2'b00;
+                end
+                6'b101001: begin // SH
+                    ALUSrc = 1'b1; MemWrite = 1'b1; ALUop = ALU_ADD; MemSize = 2'b01;
+                end
+    
+                6'b000100: begin // BEQ
+                    Branch = 1'b1; ALUop = ALU_SUB; // compare via subtract?Zero
+                end
+    
+                6'b000010: begin // J
+                    Jump = 1'b1;
+                end
+    
+                6'b000011: begin // JAL
+                    Jump = 1'b1; Link = 1'b1; RegWrite = 1'b1; // WB writes $ra
+                end
+    
+                default: begin
+                    // leave defaults (NOP)
+                end
+            endcase
+        end
+     end
+     
+        
 endmodule
     
