@@ -30,17 +30,17 @@ module TopLevel(
     // ========================================================================
     // IF STAGE - Instruction Fetch
     // ========================================================================
-    wire [31:0] PC_curr, PC_plus4, PC_next_final;
+    wire [31:0] PC_curr, PC_IF, PC_next_final;
     wire [31:0] Instr_IF;
 
-    // Create Instruction Fetch Unit
+    // Create Instruction Fetch Unit, not sure if this is necessary
     InstructionFetchUnit ifu(
         .Clk(ClkSlow),
         .Reset(Reset),
         .PC_next(PC_next_final),     // From branch/jump logic
         .Instruction(Instr_IF),      // To IF/ID register
         .PC_curr(PC_curr),           // For display/debug
-        .PC_plus4(PC_plus4)          // To IF/ID register
+        .PC_plus4(PC_IF)          // To IF/ID register
     );
 
     // Jump address calculation (moved here for clarity)
@@ -50,7 +50,7 @@ module TopLevel(
       .in (Instr_IF[25:0]),
       .out(JumpShifted_IF)
     );
-    assign JumpAddr_IF = {PC_plus4[31:28], JumpShifted_IF};
+    assign JumpAddr_IF = {PC_IF[31:28], JumpShifted_IF};
 
     // ========================================================================
     // IF/ID PIPELINE REGISTER
@@ -62,7 +62,7 @@ module TopLevel(
         .rst(Reset),
         .en(1'b1),                      // No stalls in this lab
         .instr_in(Instr_IF),
-        .pc_in(PC_plus4),
+        .pc_in(PC_IF),
         .jump_addr_in(JumpAddr_IF),
         .instr_out(Instr_ID),
         .pc_out(PC_ID),                 // Carries PC+4 from IF stage
@@ -134,6 +134,35 @@ module TopLevel(
     // JR target = value in rs register
     wire [31:0] JRTarget_ID = ReadData1_ID;
 
+        // Calculating Branch Address (ID Stage)
+    
+    wire [31:0] ImmShifted_ID;
+    wire [31:0] BranchAddr_ID;
+    
+    // branch shifted left 2 for byte offset
+    Shift_left_2_32 br_id (
+        .in(Imm_ID),
+        .out(ImmShifted_ID)
+    );
+    
+    // branchtarget = current PC + 4 + shifted Immediate
+    
+    assign BranchAddr_ID = PC_IF + ImmShifted_ID;
+    
+    // BEQ (branch if GPR[rs] == GPR[rt])
+    wire Zero_ID = (ReadData1_ID == ReadData2_ID);
+    wire BranchTaken_ID = Branch_ID & Zero_ID;
+    
+    
+    // ===========================================================
+    //  PC SELECTION = Priority: JR > J > Branch > Sequantial (+4)
+    // ==========================================================
+    wire [31:0] PC_branch_or_seq = BranchTaken_ID ? BranchAddr_ID : PC_IF;
+    
+    assign PC_next_final = JumpReg_ID ? JRTarget_ID  :  // JR: use rs value (from ID)
+                       Jump_ID    ? JumpAddr_ID  :  // J/JAL: use jump address (from ID)
+                                     PC_branch_or_seq; // Branch (ID) or PC+4
+
     // ========================================================================
     // ID/EX PIPELINE REGISTER
     // ========================================================================
@@ -144,10 +173,12 @@ module TopLevel(
     wire [31:0] ReadData1_EX, ReadData2_EX, Imm_EX, PC_EX, JumpAddr_EX;
     wire [4:0]  rs_EX, rt_EX, rd_EX, shamt_EX;
     wire [5:0]  funct_EX;
+    wire flush_temp = 0;
 
     Reg_ID_EX ID_EX(
         .clk(ClkSlow),       // Use slow clock
         .reset(Reset),
+        .flush(flush_temp),
         // Control signals in
         .RegWrite_in(RegWrite_ID),
         .MemWrite_in(MemWrite_ID),
@@ -298,18 +329,7 @@ module TopLevel(
         .ReadData(MemReadData_MEM)
     );
 
-    // Branch decision: take branch if BEQ and Zero flag set
-    wire PCSrc_MEM = Branch_MEM & Zero_MEM;
-
-    // ========================================================================
-    // PC SELECTION - Priority: JR > J > Branch > Sequential
-    // ========================================================================
-    wire [31:0] PC_branch_or_seq = PCSrc_MEM ? BranchTarget_MEM : PC_plus4;
-    
-    // FIXED: Use proper jump detection from ID stage
-    assign PC_next_final = (JumpReg_ID | Jump_ID) ? 
-                          (JumpReg_ID ? JRTarget_ID : JumpAddr_ID) : 
-                          PC_branch_or_seq;
+     //PC selection moved to ID (changed from here)
 
     // ========================================================================
     // MEM/WB PIPELINE REGISTER
