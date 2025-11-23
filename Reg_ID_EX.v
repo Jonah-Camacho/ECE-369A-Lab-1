@@ -4,6 +4,7 @@
 module Reg_ID_EX(
     input clk, 
     input reset,
+    input flush,  // added for inserting NOPs in EX when stalling
     // Control signals
     input RegWrite_in, 
     input MemWrite_in, 
@@ -77,6 +78,31 @@ module Reg_ID_EX(
             rd_out       <= 5'b0;
             funct_out    <= 6'b0;
             shamt_out    <= 5'b0;
+        end
+        else if (flush) begin //insert a NOP into EX
+            // Control signals
+            RegWrite_out <= 0;
+            MemWrite_out <= 0;
+            MemRead_out <= 0;
+            Branch_out <= 0;
+            MemToReg_out <= 0;
+            ALUSrc_out <= 0;
+            RegDst_out <= 0;       
+            ALUop_out <= 4'b0;
+            MemSize_out <= 2'b0;
+            LoadSigned_out <= 0;
+            Link_out <= 0;
+            JumpAddr_out <= 0;
+            // Data signals (does not matter if passed through or not, but will be set to 0 for safety)
+            ReadData1_out <= 32'b0;
+            ReadData2_out <= 32'b0;
+            ExtImm_out   <= 32'b0;
+            PCp4_out     <= 32'b0;
+            rs_out       <= 5'b0;
+            rt_out       <= 5'b0;
+            rd_out       <= 5'b0;
+            funct_out    <= 6'b0;
+            shamt_out    <= 5'b0;     
         end
         else begin
             // Control signals
