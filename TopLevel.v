@@ -2,6 +2,8 @@
 
 ///////
 // Participation: 33% Jonah Camacho, 33% Alex Melde, 33% Daniel Rivera Castelo
+// 5-stage pipeline
+// make sure to 
 //////
 
 module TopLevel(
@@ -17,32 +19,18 @@ module TopLevel(
     // CLOCK DIVIDER - Slow down clock for visible display on FPGA
     // ========================================================================
     
-    wire ClkSlow;
-    
-    `ifdef SIMULATION
-    // For simulation: use full-speed clock
-    assign ClkSlow = Clk;
-`else
-    // For FPGA: use divided clock
-    ClkDiv clock_divider(
-        .Clk(Clk),
-        .Rst(Reset),
-        .ClkOut(ClkSlow)
-    );
-`endif
-
+    // IMPORTANT: uncomment these two for simulation
   //  wire ClkSlow;
+
+  //  assign ClkSlow = Clk;
+
+    // IMPORTANT: uncomment this for fpga board
+    ClkDiv clock_divider(
+        .Clk(Clk),           // 100 MHz input from board
+       .Rst(Reset),
+        .ClkOut(ClkSlow)     // 1 Hz output (1 instruction/second)
+    );
     
-  //  ClkDiv clock_divider(
-  //      .Clk(Clk),           // 100 MHz input from board
-  //     .Rst(Reset),
-   //     .ClkOut(ClkSlow)     // 1 Hz output (1 instruction/second)
-  //  );
-    
-    // assign ClkSlow = Clk;
-    
-    // Use ClkSlow for all datapath components
-    // Use Clk (fast) for the display multiplexing
 
     // ========================================================================
     // IF STAGE - Instruction Fetch
@@ -52,15 +40,7 @@ module TopLevel(
     wire PCWrite;
     wire IF_ID_Write;
     wire ID_EX_Flush;
-    // ========================================================================
-    // DEBUG SIGNALS FOR SIMULATION (PC and RF write data)
-    // ========================================================================
-    // Program Counter (WB stage, instruction address)
-  //  (* mark_debug = "true" *)
-  //  wire [31:0] PC_WB;
-    
-  //  (* mark_debug = "true" *)
-   // wire [31:0] WriteData_WB_final;
+
 
     // Create Instruction Fetch Unit, not sure if this is necessary
     InstructionFetchUnit ifu(

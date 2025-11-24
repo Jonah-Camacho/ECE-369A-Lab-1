@@ -35,67 +35,7 @@ module TopLevel_tb;
     always #5 Clk = ~Clk;
 
     // ------------------------------------------------------------
-    // Optional internal debug taps
-    //
-    // >>> IMPORTANT <<<
-    // For the lab, the TA will pull out PC and the register-file
-    // write data directly from the waveform using hierarchical
-    // names. You *do not* have to print them here.
-    //
-    // If YOU want to print them to the console, find the correct
-    // signal names in the Vivado "Scopes" pane and update the
-    // assignments below, then uncomment the code.
-    // ------------------------------------------------------------
-
-    // Example: if inside TopLevel you have something like:
-    //   ProgramCounter PC_inst (... .PC_out(PC_wire) ...);
-    //   RegisterFile   RF_inst (... .WriteData(WriteData_WB) ...);
-    // and WB control signals like:
-    //   wire RegWrite_WB;
-    //   wire [4:0] WriteReg_WB;
-    //
-    // then you could do something like this (edit names to match!):
-    //
-    /*
-    wire [31:0] PC_debug;
-    wire        RegWrite_debug;
-    wire [4:0]  WriteReg_debug;
-    wire [31:0] WriteData_debug;
-
-    // Change the right-hand sides to your *actual* names:
-    assign PC_debug        = dut.PC;              // e.g. dut.PC_wire or dut.IFU.PC_out
-    assign RegWrite_debug  = dut.RegWrite_WB;     // WB stage RegWrite
-    assign WriteReg_debug  = dut.WriteReg_WB;     // WB destination register
-    assign WriteData_debug = dut.WriteData_WB;    // Data written to register file
-    */
-
-    // ------------------------------------------------------------
-    // Optional monitor: print PC + RF writeback every cycle
-    // (Uncomment after you hook up the *_debug signals above.)
-    // ------------------------------------------------------------
-    /*
-    always @(posedge Clk) begin
-        if (Reset) begin
-            $display("t=%0t  RESET asserted", $time);
-        end
-        else begin
-            if (RegWrite_debug) begin
-                $display("t=%0t  PC=%h  rd=%0d  data=%h",
-                         $time,
-                         PC_debug,
-                         WriteReg_debug,
-                         WriteData_debug);
-            end
-            else begin
-                $display("t=%0t  PC=%h  (no RF write)", $time, PC_debug);
-            end
-        end
-    end
-    */
-
-    // ------------------------------------------------------------
-    // Main stimulus
-    // ------------------------------------------------------------
+   
     integer cycle_count;
 
     initial begin
