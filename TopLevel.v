@@ -9,18 +9,35 @@ module TopLevel(
     input  wire       Reset,
     output wire [6:0] out7,      // Seven-segment display segments
     output wire [7:0] en_out     // Seven-segment display enable
+
+
 );
 
     // ========================================================================
     // CLOCK DIVIDER - Slow down clock for visible display on FPGA
     // ========================================================================
+    
     wire ClkSlow;
     
+    `ifdef SIMULATION
+    // For simulation: use full-speed clock
+    assign ClkSlow = Clk;
+`else
+    // For FPGA: use divided clock
     ClkDiv clock_divider(
-        .Clk(Clk),           // 100 MHz input from board
+        .Clk(Clk),
         .Rst(Reset),
-        .ClkOut(ClkSlow)     // 1 Hz output (1 instruction/second)
+        .ClkOut(ClkSlow)
     );
+`endif
+
+  //  wire ClkSlow;
+    
+  //  ClkDiv clock_divider(
+  //      .Clk(Clk),           // 100 MHz input from board
+  //     .Rst(Reset),
+   //     .ClkOut(ClkSlow)     // 1 Hz output (1 instruction/second)
+  //  );
     
     // assign ClkSlow = Clk;
     
@@ -32,16 +49,30 @@ module TopLevel(
     // ========================================================================
     wire [31:0] PC_curr, PC_IF, PC_next_final;
     wire [31:0] Instr_IF;
+    wire PCWrite;
+    wire IF_ID_Write;
+    wire ID_EX_Flush;
+    // ========================================================================
+    // DEBUG SIGNALS FOR SIMULATION (PC and RF write data)
+    // ========================================================================
+    // Program Counter (WB stage, instruction address)
+  //  (* mark_debug = "true" *)
+  //  wire [31:0] PC_WB;
+    
+  //  (* mark_debug = "true" *)
+   // wire [31:0] WriteData_WB_final;
 
     // Create Instruction Fetch Unit, not sure if this is necessary
     InstructionFetchUnit ifu(
         .Clk(ClkSlow),
         .Reset(Reset),
         .PC_next(PC_next_final),     // From branch/jump logic
+        .PCWrite(PCWrite),
         .Instruction(Instr_IF),      // To IF/ID register
         .PC_curr(PC_curr),           // For display/debug
         .PC_plus4(PC_IF)          // To IF/ID register
     );
+    
 
     // Jump address calculation (moved here for clarity)
     wire [27:0] JumpShifted_IF;
@@ -60,12 +91,12 @@ module TopLevel(
     Reg_IF_ID IF_ID(
         .clk(ClkSlow),       // Use slow clock
         .rst(Reset),
-        .en(1'b1),                      // No stalls in this lab
+        .en(IF_ID_Write),                      
         .instr_in(Instr_IF),
         .pc_in(PC_IF),
         .jump_addr_in(JumpAddr_IF),
         .instr_out(Instr_ID),
-        .pc_out(PC_ID),                 // Carries PC+4 from IF stage
+        .pc_out(PC_ID),                 
         .jump_addr_out(JumpAddr_ID)
     );
 
@@ -107,6 +138,7 @@ module TopLevel(
     // WB stage outputs (forward declared for RegisterFile)
     wire        RegWrite_WB_final;
     wire [4:0]  WriteReg_WB_final;
+    (* mark_debug = "true" *)
     wire [31:0] WriteData_WB_final;
 
     // Register File
@@ -173,12 +205,11 @@ module TopLevel(
     wire [31:0] ReadData1_EX, ReadData2_EX, Imm_EX, PC_EX, JumpAddr_EX;
     wire [4:0]  rs_EX, rt_EX, rd_EX, shamt_EX;
     wire [5:0]  funct_EX;
-    wire flush_temp = 0;
 
     Reg_ID_EX ID_EX(
         .clk(ClkSlow),       // Use slow clock
         .reset(Reset),
-        .flush(flush_temp),
+        .flush(ID_EX_Flush),
         // Control signals in
         .RegWrite_in(RegWrite_ID),
         .MemWrite_in(MemWrite_ID),
@@ -226,6 +257,31 @@ module TopLevel(
         .funct_out(funct_EX),
         .shamt_out(shamt_EX)
     );
+    
+    
+    Hazard_Detection_Unit hdu (
+    // ID stage
+    .Branch_ID (Branch_ID),
+    .JumpReg_ID (JumpReg_ID),
+    .rs_ID (rs_ID),
+    .rt_ID (rt_ID),
+    
+    // EX stage
+    .MemRead_EX (MemRead_EX),
+    .RegWrite_EX (RegWrite_EX),
+    .rt_EX (rt_EX),
+    .DestReg_EX (DestReg_EX),
+    
+    // MEM stage
+    .RegWrite_MEM (RegWrite_MEM),
+    .WriteReg_MEM (WriteReg_MEM),
+    
+    // Output
+    .PCWrite (PCWrite),
+    .IF_ID_Write (IF_ID_Write),
+    .ID_EX_Flush (ID_EX_Flush)
+    );
+    
 
     // ========================================================================
     // EX STAGE - Execute
@@ -330,11 +386,13 @@ module TopLevel(
     );
 
      //PC selection moved to ID (changed from here)
+ 
 
     // ========================================================================
     // MEM/WB PIPELINE REGISTER
     // ========================================================================
     wire RegWrite_WB, MemToReg_WB, Link_WB;
+    (* mark_debug = "true" *)
     wire [31:0] ALUres_WB, MemReadData_WB, PC_WB;
     wire [4:0]  WriteReg_WB_core;
 
@@ -388,5 +446,7 @@ module TopLevel(
         .out7   (out7),
         .en_out (en_out)
     );
+
+    
 
 endmodule

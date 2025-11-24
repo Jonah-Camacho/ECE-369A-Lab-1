@@ -1,6 +1,5 @@
 `timescale 1ns / 1ps
 
-
 module Reg_ID_EX(
     input clk, 
     input reset,
