@@ -20,16 +20,16 @@ module TopLevel(
     // ========================================================================
     
     // IMPORTANT: uncomment these two for simulation
-  //  wire ClkSlow;
+    wire ClkSlow;
 
-  //  assign ClkSlow = Clk;
+    //assign ClkSlow = Clk;
 
     // IMPORTANT: uncomment this for fpga board
     ClkDiv clock_divider(
         .Clk(Clk),           // 100 MHz input from board
-       .Rst(Reset),
+        .Rst(Reset),
         .ClkOut(ClkSlow)     // 1 Hz output (1 instruction/second)
-    );
+   );
     
 
     // ========================================================================
@@ -40,20 +40,23 @@ module TopLevel(
     wire PCWrite;
     wire IF_ID_Write;
     wire ID_EX_Flush;
-
-
+    
     // Create Instruction Fetch Unit, not sure if this is necessary
-    InstructionFetchUnit ifu(
-        .Clk(ClkSlow),
-        .Reset(Reset),
-        .PC_next(PC_next_final),     // From branch/jump logic
+    ProgramCounter pc (
+        .Address(PC_next_final),
         .PCWrite(PCWrite),
-        .Instruction(Instr_IF),      // To IF/ID register
-        .PC_curr(PC_curr),           // For display/debug
-        .PC_plus4(PC_IF)          // To IF/ID register
+        .PCResult(PC_curr),
+        .Reset(Reset),
+        .Clk(ClkSlow)
     );
     
-
+    assign PC_IF = PC_curr + 4;
+    
+    InstructionMemory im (
+        .Address(PC_IF),
+        .Instruction(Instr_IF)
+    );
+    
     // Jump address calculation (moved here for clarity)
     wire [27:0] JumpShifted_IF;
     wire [31:0] JumpAddr_IF;                
@@ -67,7 +70,6 @@ module TopLevel(
     // IF/ID PIPELINE REGISTER
     // ========================================================================
     wire [31:0] Instr_ID, PC_ID, JumpAddr_ID;
-    
     Reg_IF_ID IF_ID(
         .clk(ClkSlow),       // Use slow clock
         .rst(Reset),
@@ -159,42 +161,41 @@ module TopLevel(
     
     // branchtarget = current PC + 4 + shifted Immediate
     
-    assign BranchAddr_ID = PC_IF + ImmShifted_ID;
+    assign BranchAddr_ID = PC_ID + ImmShifted_ID;
     
     // BEQ (branch if GPR[rs] == GPR[rt])
     wire Zero_ID = (ReadData1_ID == ReadData2_ID);
     wire BranchTaken_ID = Branch_ID & Zero_ID;
     
-    
     // ===========================================================
     //  PC SELECTION = Priority: JR > J > Branch > Sequantial (+4)
     // ==========================================================
-    wire [31:0] PC_branch_or_seq = BranchTaken_ID ? BranchAddr_ID : PC_IF;
+    wire [31:0] PC_branch_or_seq = BranchTaken_ID ? BranchAddr_ID : PC_curr + 4;
     
-    assign PC_next_final = JumpReg_ID ? JRTarget_ID  :  // JR: use rs value (from ID)
-                       Jump_ID    ? JumpAddr_ID  :  // J/JAL: use jump address (from ID)
+    assign PC_next_final = (PCWrite == 0) ? PC_curr : JumpReg_ID ? JRTarget_ID  :  // JR: use rs value (from ID)
+                           Jump_ID ? JumpAddr_ID  :  // J/JAL: use jump address (from ID)
                                      PC_branch_or_seq; // Branch (ID) or PC+4
 
     // ========================================================================
     // ID/EX PIPELINE REGISTER
     // ========================================================================
-    wire RegWrite_EX, MemWrite_EX, MemRead_EX, Branch_EX, MemToReg_EX;
+    wire RegWrite_EX, MemWrite_EX, MemRead_EX, MemToReg_EX;
     wire ALUSrc_EX, RegDst_EX, Link_EX, LoadSigned_EX;
     wire [3:0] ALUop_EX;
     wire [1:0] MemSize_EX;
     wire [31:0] ReadData1_EX, ReadData2_EX, Imm_EX, PC_EX, JumpAddr_EX;
     wire [4:0]  rs_EX, rt_EX, rd_EX, shamt_EX;
     wire [5:0]  funct_EX;
+    assign flush = ID_EX_Flush ? 1 : 0;
 
     Reg_ID_EX ID_EX(
         .clk(ClkSlow),       // Use slow clock
         .reset(Reset),
-        .flush(ID_EX_Flush),
+        .flush(flush),
         // Control signals in
         .RegWrite_in(RegWrite_ID),
         .MemWrite_in(MemWrite_ID),
         .MemRead_in(MemRead_ID),
-        .Branch_in(Branch_ID),
         .MemToReg_in(MemToReg_ID),
         .ALUSrc_in(ALUSrc_ID),
         .RegDst_in(RegDst_ID),
@@ -217,7 +218,6 @@ module TopLevel(
         .RegWrite_out(RegWrite_EX),
         .MemWrite_out(MemWrite_EX),
         .MemRead_out(MemRead_EX),
-        .Branch_out(Branch_EX),
         .MemToReg_out(MemToReg_EX),
         .ALUSrc_out(ALUSrc_EX),
         .RegDst_out(RegDst_EX),
@@ -237,31 +237,6 @@ module TopLevel(
         .funct_out(funct_EX),
         .shamt_out(shamt_EX)
     );
-    
-    
-    Hazard_Detection_Unit hdu (
-    // ID stage
-    .Branch_ID (Branch_ID),
-    .JumpReg_ID (JumpReg_ID),
-    .rs_ID (rs_ID),
-    .rt_ID (rt_ID),
-    
-    // EX stage
-    .MemRead_EX (MemRead_EX),
-    .RegWrite_EX (RegWrite_EX),
-    .rt_EX (rt_EX),
-    .DestReg_EX (DestReg_EX),
-    
-    // MEM stage
-    .RegWrite_MEM (RegWrite_MEM),
-    .WriteReg_MEM (WriteReg_MEM),
-    
-    // Output
-    .PCWrite (PCWrite),
-    .IF_ID_Write (IF_ID_Write),
-    .ID_EX_Flush (ID_EX_Flush)
-    );
-    
 
     // ========================================================================
     // EX STAGE - Execute
@@ -269,15 +244,6 @@ module TopLevel(
     
     // Destination register: rd for R-type, rt for I-type
     wire [4:0] DestReg_EX = (RegDst_EX) ? rd_EX : rt_EX;
-
-    // Branch address
-    wire [31:0] ImmShifted_EX;
-    wire [31:0] BranchAddr_EX;             
-    Shift_left_2_32 u_branch_shift (
-      .in (Imm_EX),
-      .out(ImmShifted_EX)
-    );
-    assign BranchAddr_EX = PC_EX + ImmShifted_EX;
     
     // ALU second operand: immediate or register
     wire [31:0] ALU_2nd = (ALUSrc_EX) ? Imm_EX : ReadData2_EX;
@@ -305,10 +271,10 @@ module TopLevel(
     // ========================================================================
     // EX/MEM PIPELINE REGISTER
     // ========================================================================
-    wire RegWrite_MEM, MemToReg_MEM, MemWrite_MEM, MemRead_MEM, Branch_MEM, Link_MEM;
+    wire RegWrite_MEM, MemToReg_MEM, MemWrite_MEM, MemRead_MEM, Link_MEM;
     wire [1:0] MemSize_MEM;
     wire LoadSigned_MEM, Zero_MEM;
-    wire [31:0] ALUres_MEM, WriteData_MEM, BranchTarget_MEM, PC_MEM;
+    wire [31:0] ALUres_MEM, WriteData_MEM, PC_MEM;
     wire [4:0]  WriteReg_MEM;
 
     Reg_EX_MEM ex_mem(
@@ -321,12 +287,10 @@ module TopLevel(
         .MemRead_in(MemRead_EX),
         .MemSize_in(MemSize_EX),
         .LoadSigned_in(LoadSigned_EX),
-        .Branch_in(Branch_EX),
         .Link_in(Link_EX),
         // Data signals in
         .ALUResult_in(ALUres_EX),
         .WriteData_in(ReadData2_EX),    // RT value for stores
-        .BranchTarget_in(BranchAddr_EX),
         .Zero_in(Zero_EX),
         .WriteReg_in(DestReg_EX),
         .PCp4_in(PC_EX),
@@ -337,12 +301,10 @@ module TopLevel(
         .MemRead_out(MemRead_MEM),
         .MemSize_out(MemSize_MEM),
         .LoadSigned_out(LoadSigned_MEM),
-        .Branch_out(Branch_MEM),
         .Link_out(Link_MEM),
         // Data signals out
         .ALUResult_out(ALUres_MEM),
         .WriteData_out(WriteData_MEM),
-        .BranchTarget_out(BranchTarget_MEM),
         .Zero_out(Zero_MEM),
         .WriteReg_out(WriteReg_MEM),
         .PCp4_out(PC_MEM)
@@ -425,6 +387,30 @@ module TopLevel(
         .NumberB(dispB),
         .out7   (out7),
         .en_out (en_out)
+    );
+    
+    Hazard_Detection_Unit hdu (
+    // ID stage
+    .Branch_ID (Branch_ID),
+    .JumpReg_ID (JumpReg_ID),
+    .rs_ID (rs_ID),
+    .rt_ID (rt_ID),
+    
+    // EX stage
+    .MemRead_MEM (MemRead_MEM),
+    .MemRead_EX (MemRead_EX),
+    .RegWrite_EX (RegWrite_EX),
+    .rt_EX (rt_EX),
+    .DestReg_EX (DestReg_EX),
+    
+    // MEM stage
+    .RegWrite_MEM (RegWrite_MEM),
+    .WriteReg_MEM (WriteReg_MEM),
+    
+    // Output
+    .PCWrite (PCWrite),
+    .IF_ID_Write (IF_ID_Write),
+    .ID_EX_Flush (ID_EX_Flush)
     );
 
     
