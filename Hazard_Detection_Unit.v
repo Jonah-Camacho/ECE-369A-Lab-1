@@ -29,6 +29,7 @@ module Hazard_Detection_Unit(
     
     // EX Stage Inputs
     input MemRead_EX,    // LU
+    input MemRead_MEM, //LU
     input RegWrite_EX,   // RAW
     input [4:0] rt_EX,   // For load-use
     input [4:0] DestReg_EX, // dest reg of EX (rt = I, rd = R)
@@ -49,7 +50,9 @@ module Hazard_Detection_Unit(
     // =================================
     wire load_use_hazard;
     // if we're reading mem in EX and either the rs or rt of the ID insrtuction is equal to the register being read from (and rt_EX != 0/nop)
-    assign load_use_hazard = MemRead_EX && ((rt_EX == rs_ID) || (rt_EX == rt_ID)) && (rt_EX != 5'd0);
+    assign load_use_hazard = MemRead_EX && ((rt_EX == rs_ID) || (rt_EX == rt_ID)) && (rt_EX != 5'd0) ||
+        MemRead_MEM && ((WriteReg_MEM == rs_ID) || (WriteReg_MEM == rt_ID)) && (WriteReg_MEM != 5'd0);
+    
     
     // =========================================
     // ALU -> ALU RAW (assuming no forwarding)
