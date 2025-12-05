@@ -22,7 +22,8 @@ module ALU(
       ALU_SLL       = 4'b0111,
       ALU_SRL       = 4'b1000,
       ALU_MUL       = 4'b1001,
-      ALU_NOP       = 4'b1111;
+      ALU_NOP       = 4'b1111,
+      ALU_LUI       = 4'b1010;
     
     always @* begin
         case (op)
@@ -68,6 +69,10 @@ module ALU(
             
             ALU_SRL: begin
                 result = input2 >> shamt;
+            end
+            
+            ALU_LUI: begin
+                result = input2 << 16;
             end
             
             default: result = 32'b0;
