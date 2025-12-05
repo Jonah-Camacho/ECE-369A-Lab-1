@@ -29,7 +29,8 @@ module Controller(
       ALU_SRL       = 4'b1000,
       ALU_MUL       = 4'b1001,
       ALU_USE_FUNCT = 4'b1110,
-      ALU_NOP       = 4'b1111;
+      ALU_NOP       = 4'b1111,
+      ALU_LUI       = 4'b1010;
 
     wire [5:0] opcode = Instruction[31:26];
     wire [5:0] funct  = Instruction[5:0];
@@ -51,13 +52,13 @@ module Controller(
         MemSize    = 2'b10;    // word
         LoadSigned = 1'b1;     // signed by default
         
+       
         // Check for NOP first (all zeros)
         if (Instruction == 32'h00000000) begin
             // NOP - all defaults remain (do nothing)
             // RegWrite = 0, ALUop = NOP, etc.
         end
         else begin
-
             case (opcode)
                 6'b000000: begin // R-type
                     // JR handled as a special R-type
@@ -120,7 +121,12 @@ module Controller(
                 6'b101001: begin // SH
                     ALUSrc = 1'b1; MemWrite = 1'b1; ALUop = ALU_ADD; MemSize = 2'b01;
                 end
-    
+                6'b001111: begin // LUI
+                    RegWrite = 1'b1;
+                    ALUSrc   = 1'b1;   // uses immediate
+                    ExtOp    = 1'b1;   // zero-extend (important!)
+                    ALUop    = ALU_LUI;
+                end
                 6'b000100: begin // BEQ
                     Branch = 1'b1; ALUop = ALU_SUB; // compare via subtract?Zero
                 end
