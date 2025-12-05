@@ -59,7 +59,11 @@ module RegisterFile (
         end
     end
     
-    assign ReadData1 = (ReadRegister1 == 5'd0) ? 32'b0 : regs[ReadRegister1];
-    assign ReadData2 = (ReadRegister2 == 5'd0) ? 32'b0 : regs[ReadRegister2];
+    assign ReadData1 = (ReadRegister1 == 5'd0) ? 32'b0 : 
+    (RegWrite && WriteRegister == ReadRegister1 && WriteRegister != 0) ? WriteData :
+    regs[ReadRegister1];
+    assign ReadData2 = (ReadRegister2 == 5'd0) ? 32'b0 :
+    (RegWrite && WriteRegister == ReadRegister2 && WriteRegister != 0) ? WriteData :
+    regs[ReadRegister2];
     
 endmodule
