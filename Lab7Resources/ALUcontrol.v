@@ -20,7 +20,8 @@ module ALUcontrol(
       ALU_SRL       = 4'b1000,
       ALU_MUL       = 4'b1001,
       ALU_USE_FUNCT = 4'b1110,
-      ALU_NOP       = 4'b1111;
+      ALU_NOP       = 4'b1111,
+      ALU_LUI       = 4'b1010;
 
     // R-type funct codes
    localparam [5:0]
@@ -74,8 +75,10 @@ module ALUcontrol(
                 end
             endcase
         end else begin
-            //Non R-type
-            ALUctrl = ALUop;
+            case(ALUop)
+                ALU_LUI: ALUctrl = ALU_LUI;
+                default: ALUctrl = ALUop;
+            endcase
         end
     end
 endmodule
