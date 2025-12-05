@@ -319,11 +319,39 @@ module TopLevel(
     
     // Data Memory
     wire [31:0] MemReadData_MEM;
+//changed all of this////////////////////////////////////////////////
+    reg [15:0] best_row_reg;
+    reg [15:0] best_col_reg;
+
+    localparam[31:0] Best_ROW_ADDR = 32'hFFF0000;
+    localparam[31:0] Best_Col_ADDR = 32'hFFFF0004;
+
+    wire io_row_write = MemWrite_MEM && (ALUres_MEM == Best_ROW_ADDR);
+    wire io_col_write = MemWrite_MEM && (ALUres_MEM == Best_Col_ADDR);
+    wire any_io_write = io_row_write || io_col_write;
+
+    wire MemWrite_to_RAM = MemWrite_MEM && ~any_io_write;
+
+    always @(posedge ClkSlow or posedge Reset) being
+        if(Reset) begin
+        best_row_reg <= 16'd0;
+        best_col_reg <= 16'd0;
+        end else begin
+            if(io_row_write)
+            best_row_reg <= WriteData_MEM[15:0];
+            if(io_col_write)
+            best_col_reg <WriteData_MEM[15:0];
+        end
+    end
+
+
+////////////////////////////////////
+
     DataMemory data_mem(
         .Clk(ClkSlow),           // Use slow clock
         .Address(ALUres_MEM),
         .WriteData(WriteData_MEM),
-        .MemWrite(MemWrite_MEM),
+        .MemWrite(MemWrite_to_RAM), //changed this /////
         .MemRead(MemRead_MEM),
         .MemSize(MemSize_MEM),
         .LoadSigned(LoadSigned_MEM),
@@ -380,11 +408,11 @@ module TopLevel(
     // DISPLAY: show PC (low 16) and RF write data (low 16)
     // ========================================================================
     wire [31:0] pc_wb_instr = PC_WB - 32'd4;  // align with the actual instruction address
-
-    wire [15:0] dispA = pc_wb_instr[15:0];        // lower 16 bits of PC at WB
-    wire [15:0] dispB = RegWrite_WB_final ? WriteData_WB_final[15:0] : 16'h0000;
+///Changed this 
+    wire [15:0] dispA = best_row_reg ;  //row    // lower 16 bits of PC at WB
+    wire [15:0] dispB = best_col_reg; //col
      // lower 16 bits of WB data
-    
+    ////////////////////////////////////
     Two4DigitDisplay disp (
         .Clk    (Clk),    // fast clock for multiplexing
         .NumberA(dispA),
