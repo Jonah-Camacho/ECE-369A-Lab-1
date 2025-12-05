@@ -23,7 +23,10 @@
 module Hazard_Detection_Unit(
     // ID Stage Inputs
     input Branch_ID,   // BAW
+    input BranchTaken_ID,
+    input Jump_ID,
     input JumpReg_ID,  // JRAW
+    input Link_ID,
     input [4:0] rs_ID, // checking for matching
     input [4:0] rt_ID, // checking for matching
     
@@ -46,6 +49,7 @@ module Hazard_Detection_Unit(
     // Control Signal Outputs
     output reg PCWrite, //control whether PC should write next instruction sequentially (Stall > Seq)
     output reg IF_ID_Write, //control whether we should write next insrtuction to IF_ID
+    output reg IF_ID_Flush, //control flushing of IF_ID register
     output reg ID_EX_Flush //control flushing of ID_EX register 
     );
     
@@ -57,8 +61,7 @@ module Hazard_Detection_Unit(
     // if we're reading mem in EX and either the rs or rt of the ID insrtuction is equal to the register being read from (and rt_EX != 0/nop)
     assign load_use_hazard =
     (MemRead_EX  && ((rt_EX       == rs_ID) || (rt_EX       == rt_ID)) && (rt_EX       != 5'd0)) ||
-    (MemRead_MEM && ((WriteReg_MEM == rs_ID) || (WriteReg_MEM == rt_ID)) && (WriteReg_MEM != 5'd0)) ||
-    (MemToReg_WB && ((WriteReg_WB  == rs_ID) || (WriteReg_WB  == rt_ID)) && (WriteReg_WB  != 5'd0));
+    (MemRead_MEM && ((WriteReg_MEM == rs_ID) || (WriteReg_MEM == rt_ID)) && (WriteReg_MEM != 5'd0));
 
     
     // =========================================
@@ -72,12 +75,8 @@ module Hazard_Detection_Unit(
     
     assign ex_raw_hazard = RegWrite_EX && !MemRead_EX && (DestReg_EX != 5'd0) && ( (DestReg_EX == rs_ID) || (DestReg_EX == rt_ID));
     assign mem_raw_hazard = RegWrite_MEM && !MemRead_MEM && ( WriteReg_MEM != 5'd0) && ((WriteReg_MEM == rs_ID) || (WriteReg_MEM == rt_ID));
-    assign wb_raw_hazard = RegWrite_WB && 
-                        !MemToReg_WB &&
-                       (WriteReg_WB != 5'd0) && 
-                       ((WriteReg_WB == rs_ID) || (WriteReg_WB == rt_ID));
     //May be able to remove mem_raw_hazards later, needs checking
-    wire raw_hazard = ex_raw_hazard | mem_raw_hazard | wb_raw_hazard;
+    wire raw_hazard = ex_raw_hazard | mem_raw_hazard;
     
     // ====================================================================
     // Branch Hazards (Branch in ID relies on EX/MEM result)
@@ -95,10 +94,7 @@ module Hazard_Detection_Unit(
         Branch_ID && RegWrite_MEM && !MemRead_MEM && (WriteReg_MEM != 5'd0) &&
         ( (WriteReg_MEM == rs_ID) || (WriteReg_MEM == rt_ID) );
      
-    assign branch_dep_wb = 
-        Branch_ID && RegWrite_WB && !MemToReg_WB && (WriteReg_WB != 5'd0) &&
-        ( ( WriteReg_WB == rs_ID) || (WriteReg_WB == rt_ID) );
-    wire branch_hazard = branch_dep_ex | branch_dep_mem | branch_dep_wb;
+    wire branch_hazard = branch_dep_ex | branch_dep_mem;
     
     // ==============================================
     // JR Hazards (JR in ID relies on EX/MEM result)
@@ -111,23 +107,35 @@ module Hazard_Detection_Unit(
     
     assign jr_dep_ex = JumpReg_ID && RegWrite_EX && !MemRead_EX && DestReg_EX != 5'd0 && (DestReg_EX == rs_ID);
     assign jr_dep_mem = JumpReg_ID && RegWrite_MEM && !MemRead_MEM && WriteReg_MEM != 5'd0 && (WriteReg_MEM == rs_ID);
-    assign jr_dep_wb = JumpReg_ID && RegWrite_WB && !MemToReg_WB && WriteReg_WB != 5'd0 && (WriteReg_WB == rs_ID);
     
-    wire jr_hazard = jr_dep_ex | jr_dep_mem | jr_dep_wb;
+    wire jr_hazard = jr_dep_ex | jr_dep_mem;
     
     // Checking for any hazard
     wire hazard_any = load_use_hazard | raw_hazard | branch_hazard | jr_hazard;
+    wire control_flush = (BranchTaken_ID && Branch_ID) | Jump_ID | JumpReg_ID | Link_ID;
     
     always @(*) begin
         // Default, no hazard detected
         PCWrite = 1'b1;
         IF_ID_Write = 1'b1;
+        IF_ID_Flush = 1'b0;
         ID_EX_Flush = 1'b0;
         
-        if (hazard_any) begin
+        
+       if (control_flush) begin
+            PCWrite = 1'b1;
+            IF_ID_Write = 1'b1;
+            IF_ID_Flush = 1'b1;
+            ID_EX_Flush = 1'b1;
+        end
+        else if (hazard_any) begin
             PCWrite     = 1'b0;  // stall PC
             IF_ID_Write = 1'b0;  // stall IF/ID
+            IF_ID_Flush = 1'b0;
             ID_EX_Flush = 1'b1;  // insert bubble into EX
+        end
+        else begin
+
         end
     
     end
