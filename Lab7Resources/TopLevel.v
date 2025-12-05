@@ -22,14 +22,14 @@ module TopLevel(
     // IMPORTANT: uncomment these two for simulation
   wire ClkSlow;
 
-  // assign ClkSlow = Clk;
+   assign ClkSlow = Clk;
 
     // IMPORTANT: uncomment this for fpga board
-  ClkDiv clock_divider(
-        .Clk(Clk),           // 100 MHz input from board
-        .Rst(Reset),
-        .ClkOut(ClkSlow)     // 1 Hz output (1 instruction/second)
-   );
+ // ClkDiv clock_divider(
+ //       .Clk(Clk),           // 100 MHz input from board
+//        .Rst(Reset),
+ //       .ClkOut(ClkSlow)     // 1 Hz output (1 instruction/second)
+  // );
     
 
     // ========================================================================
@@ -39,6 +39,7 @@ module TopLevel(
     wire [31:0] Instr_IF;
     wire PCWrite;
     wire IF_ID_Write;
+    wire IF_ID_Flush;
     wire ID_EX_Flush;
     
     // Create Instruction Fetch Unit, not sure if this is necessary
@@ -73,7 +74,8 @@ module TopLevel(
     Reg_IF_ID IF_ID(
         .clk(ClkSlow),       // Use slow clock
         .rst(Reset),
-        .en(IF_ID_Write),                      
+        .en(IF_ID_Write),
+        .flush(IF_ID_Flush),                      
         .instr_in(Instr_IF),
         .pc_in(PC_IF),
         .jump_addr_in(JumpAddr_IF),
@@ -98,6 +100,7 @@ module TopLevel(
     wire MemWrite_ID, MemRead_ID, MemToReg_ID, LoadSigned_ID;
     wire [3:0] ALUop_ID;
     wire [1:0] MemSize_ID;
+    
 
     Controller ctrl(
         .Instruction(Instr_ID),
@@ -394,6 +397,9 @@ module TopLevel(
     // ID stage
     .Branch_ID (Branch_ID),
     .JumpReg_ID (JumpReg_ID),
+    .BranchTaken_ID (BranchTaken_ID),
+    .Jump_ID (Jump_ID),
+    .Link_ID (Link_ID),
     .rs_ID (rs_ID),
     .rt_ID (rt_ID),
     
@@ -417,6 +423,7 @@ module TopLevel(
     // Output
     .PCWrite (PCWrite),
     .IF_ID_Write (IF_ID_Write),
+    .IF_ID_Flush (IF_ID_Flush),
     .ID_EX_Flush (ID_EX_Flush)
     );
 
