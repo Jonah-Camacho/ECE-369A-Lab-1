@@ -16,9 +16,14 @@ module Reg_IF_ID(
     );
     
     always @(posedge clk or posedge rst) begin
-        if (rst || flush) begin //If resetting values
+        if (rst) begin //If resetting values
             instr_out <= 32'b0;
             pc_out <= 32'b0;
+            jump_addr_out <= 32'b0;
+        end
+        else if (flush) begin
+            instr_out <= 32'h0;
+            pc_out <= 32'h0;
             jump_addr_out <= 32'b0;
         end
         else if (en) begin //If enabled
